@@ -3,3 +3,4 @@ plugins/pinchpass/node_modules/
 plugins/pinchpass/dist/
 .env
 *.swp
+CLAUDE.local.md

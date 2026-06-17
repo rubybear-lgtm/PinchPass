@@ -55,7 +55,7 @@ const pageTemplate = `<!DOCTYPE html>
   }
   .wrap{max-width:480px;width:100%}
   .ascii-hero{
-    font-size:.7rem;line-height:1.15;white-space:pre;display:block;overflow-x:auto;
+    font-size:.55rem;line-height:1.15;white-space:pre;display:block;overflow-x:auto;
     margin-bottom:.75rem;
     background:linear-gradient(90deg,#b58900,#cb4b16,#2aa198,#268bd2);
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
@@ -99,12 +99,12 @@ const pageTemplate = `<!DOCTYPE html>
 <body>
 <div class="wrap">
 <pre class="ascii-hero">
-&#x2588;&#x2588;&#x2557;   &#x2588;&#x2588;&#x2557; &#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2557; &#x2588;&#x2588;&#x2557;   &#x2588;&#x2588;&#x2557;&#x2588;&#x2588;&#x2557;  &#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2557;
-&#x2588;&#x2588;&#x2551;   &#x2588;&#x2588;&#x2551;&#x2588;&#x2588;&#x2554;&#x2550;&#x2550;&#x2588;&#x2588;&#x2557;&#x2588;&#x2588;&#x2551;   &#x2588;&#x2588;&#x2551;&#x2588;&#x2588;&#x2551;  &#x255A;&#x2550;&#x2550;&#x2588;&#x2588;&#x2554;&#x2550;&#x2550;&#x255D;
-&#x2588;&#x2588;&#x2551;   &#x2588;&#x2588;&#x2551;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2551;&#x2588;&#x2588;&#x2551;   &#x2588;&#x2588;&#x2551;&#x2588;&#x2588;&#x2551;     &#x2588;&#x2588;&#x2551;   
-&#x255A;&#x2588;&#x2588;&#x2557; &#x2588;&#x2588;&#x2554;&#x255D;&#x2588;&#x2588;&#x2554;&#x2550;&#x2550;&#x2588;&#x2588;&#x2551;&#x2588;&#x2588;&#x2551;   &#x2588;&#x2588;&#x2551;&#x2588;&#x2588;&#x2551;     &#x2588;&#x2588;&#x2551;   
- &#x255A;&#x2588;&#x2588;&#x2588;&#x2588;&#x2554;&#x255D; &#x2588;&#x2588;&#x2551;  &#x2588;&#x2588;&#x2551;&#x255A;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2554;&#x255D;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2588;&#x2557;&#x2588;&#x2588;&#x2551;   
-  &#x255A;&#x2550;&#x2550;&#x2550;&#x255D;  &#x255A;&#x2550;&#x255D;  &#x255A;&#x2550;&#x255D; &#x255A;&#x2550;&#x2550;&#x2550;&#x2550;&#x2550;&#x255D; &#x255A;&#x2550;&#x2550;&#x2550;&#x2550;&#x2550;&#x2550;&#x255D;&#x255A;&#x2550;&#x255D; 
+██████╗ ██╗███╗   ██╗ ██████╗██╗  ██╗██████╗  █████╗ ███████╗███████╗
+██╔══██╗██║████╗  ██║██╔════╝██║  ██║██╔══██╗██╔══██╗██╔════╝██╔════╝
+██████╔╝██║██╔██╗ ██║██║     ███████║██████╔╝███████║███████╗███████╗
+██╔═══╝ ██║██║╚██╗██║██║     ██╔══██║██╔═══╝ ██╔══██║╚════██║╚════██║
+██║     ██║██║ ╚████║╚██████╗██║  ██║██║     ██║  ██║███████║███████║
+╚═╝     ╚═╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝
 </pre>
 <div class="card">
   <span class="badge">pinchpass request</span>
@@ -236,7 +236,7 @@ func (s *Server) renderForm(w http.ResponseWriter) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	tmpl.Execute(w, FormData{
+	_ = tmpl.Execute(w, FormData{
 		Names:     s.secretNames,
 		NamesJSON: template.JS(namesJSON),
 		NamesText: namesText,
@@ -251,7 +251,7 @@ func (s *Server) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusBadRequest)
 		t, _ := template.New("e").Parse(errorFragment)
-		t.Execute(w, resultData{Error: "Value cannot be empty."})
+		_ = t.Execute(w, resultData{Error: "Value cannot be empty."})
 		return
 	}
 
@@ -261,7 +261,7 @@ func (s *Server) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusBadRequest)
 		t, _ := template.New("e").Parse(errorFragment)
-		t.Execute(w, resultData{Error: "Invalid encrypted value."})
+		_ = t.Execute(w, resultData{Error: "Invalid encrypted value."})
 		return
 	}
 
@@ -273,13 +273,13 @@ func (s *Server) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		successName = fmt.Sprintf("All %d secrets", len(s.secretNames))
 	}
 	t, _ := template.New("s").Parse(successFragment)
-	t.Execute(w, resultData{Success: true, Name: successName})
+	_ = t.Execute(w, resultData{Success: true, Name: successName})
 }
 
 func (s *Server) renderExpired(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusNotFound)
-	w.Write([]byte(`<!DOCTYPE html>
+	_, _ = w.Write([]byte(`<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><style>
 body{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;background:#fdf6e3;color:#657b83;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center}
 .card{background:#eee8d5;border:1px solid #93a1a1;padding:2rem;border-radius:8px;max-width:360px}

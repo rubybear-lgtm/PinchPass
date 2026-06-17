@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | { read -r f; echo \"$f\" | grep -q '\\.go$' && gofmt -w \"$f\"; } 2>/dev/null || true",
+            "timeout": 10,
+            "statusMessage": "Formatting Go file..."
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | { read -r f; echo \"$f\" | grep -q '\\.go$' && cd \"$(dirname \"$f\")\" && go vet .; } 2>/dev/null || true",
+            "timeout": 30,
+            "statusMessage": "Running go vet..."
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "skill-creator@claude-plugins-official": true
+  }
+}

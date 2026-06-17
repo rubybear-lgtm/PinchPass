@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 	"sync"
 )
 
@@ -26,7 +27,7 @@ type Tunnel struct {
 // Start dials bore.pub, completes the handshake, and begins proxying.
 // Returns once the remote port is known.
 func Start(localPort int) (*Tunnel, error) {
-	ctrl, err := net.Dial("tcp", fmt.Sprintf("%s:%d", boreHost, borePort))
+	ctrl, err := net.Dial("tcp", net.JoinHostPort(boreHost, strconv.Itoa(borePort)))
 	if err != nil {
 		return nil, fmt.Errorf("dial bore.pub: %w", err)
 	}
@@ -34,13 +35,13 @@ func Start(localPort int) (*Tunnel, error) {
 	br := bufio.NewReader(ctrl)
 
 	if err := sendMsg(ctrl, map[string]uint16{"Hello": 0}); err != nil {
-		ctrl.Close()
+		_ = ctrl.Close()
 		return nil, fmt.Errorf("send hello: %w", err)
 	}
 
 	remotePort, err := recvHello(br)
 	if err != nil {
-		ctrl.Close()
+		_ = ctrl.Close()
 		return nil, fmt.Errorf("recv hello: %w", err)
 	}
 
@@ -61,7 +62,7 @@ func (t *Tunnel) RemotePort() int { return t.remotePort }
 func (t *Tunnel) Stop() {
 	t.stopOnce.Do(func() {
 		close(t.stopCh)
-		t.ctrl.Close()
+		_ = t.ctrl.Close()
 	})
 }
 
@@ -84,11 +85,11 @@ func (t *Tunnel) loop(br *bufio.Reader) {
 }
 
 func (t *Tunnel) proxy(id string) {
-	remote, err := net.Dial("tcp", fmt.Sprintf("%s:%d", boreHost, borePort))
+	remote, err := net.Dial("tcp", net.JoinHostPort(boreHost, strconv.Itoa(borePort)))
 	if err != nil {
 		return
 	}
-	defer remote.Close()
+	defer func() { _ = remote.Close() }()
 
 	br := bufio.NewReader(remote)
 
@@ -100,18 +101,18 @@ func (t *Tunnel) proxy(id string) {
 	if err != nil {
 		return
 	}
-	defer local.Close()
+	defer func() { _ = local.Close() }()
 
 	// Drain bytes buffered by bufio after the JSON framing exchange.
 	if n := br.Buffered(); n > 0 {
 		buf := make([]byte, n)
-		br.Read(buf)
-		local.Write(buf)
+		_, _ = br.Read(buf)
+		_, _ = local.Write(buf)
 	}
 
 	done := make(chan struct{}, 2)
-	go func() { io.Copy(local, remote); done <- struct{}{} }()
-	go func() { io.Copy(remote, local); done <- struct{}{} }()
+	go func() { _, _ = io.Copy(local, remote); done <- struct{}{} }()
+	go func() { _, _ = io.Copy(remote, local); done <- struct{}{} }()
 	select {
 	case <-done:
 	case <-t.stopCh:
@@ -149,7 +150,7 @@ func recvServerMsg(br *bufio.Reader) (interface{}, error) {
 	}
 	if raw, ok := obj["Error"]; ok {
 		var msg string
-		json.Unmarshal(raw, &msg)
+		_ = json.Unmarshal(raw, &msg)
 		return errMsg{msg}, nil
 	}
 	return heartbeatMsg{}, nil
@@ -168,7 +169,7 @@ func recvHello(br *bufio.Reader) (int, error) {
 	}
 	if raw, ok := obj["Error"]; ok {
 		var msg string
-		json.Unmarshal(raw, &msg)
+		_ = json.Unmarshal(raw, &msg)
 		return 0, fmt.Errorf("server error: %s", msg)
 	}
 	raw, ok := obj["Hello"]

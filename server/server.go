@@ -86,7 +86,7 @@ func Start(cfg Config) (*Server, error) {
 	}
 	s.port = listener.Addr().(*net.TCPAddr).Port
 
-	go s.http.Serve(listener)
+	go func() { _ = s.http.Serve(listener) }()
 
 	go func() {
 		select {
@@ -100,7 +100,7 @@ func Start(cfg Config) (*Server, error) {
 	return s, nil
 }
 
-func (s *Server) Port() int  { return s.port }
+func (s *Server) Port() int    { return s.port }
 func (s *Server) Path() string { return s.path }
 
 func (s *Server) URL() string {
@@ -135,5 +135,5 @@ func (s *Server) signalDone() {
 func (s *Server) shutdown() {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	s.http.Shutdown(ctx)
+	_ = s.http.Shutdown(ctx)
 }

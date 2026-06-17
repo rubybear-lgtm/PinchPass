@@ -1,0 +1,12 @@
+{
+  "name": "pinchpass",
+  "version": "1.0.6",
+  "description": "Generate one-time E2E-encrypted secret request links to collect API keys, tokens, and passwords",
+  "author": {
+    "name": "rubybear-lgtm",
+    "url": "https://github.com/rubybear-lgtm"
+  },
+  "repository": "https://github.com/rubybear-lgtm/PinchPass",
+  "license": "MIT",
+  "keywords": ["secrets", "encryption", "credentials", "env", "api-keys"]
+}

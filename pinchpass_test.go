@@ -88,7 +88,7 @@ func TestEndToEndClaimFlow(t *testing.T) {
 		t.Fatalf("GET form: expected 200, got %d", resp.StatusCode)
 	}
 	body := readAll(t, resp)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if !strings.Contains(body, "TEST_KEY") {
 		t.Fatal("form does not contain secret name")
 	}
@@ -102,7 +102,7 @@ func TestEndToEndClaimFlow(t *testing.T) {
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("POST empty: expected 400, got %d", resp.StatusCode)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	t.Log("✓ POST empty returns 400")
 
 	// POST encrypted blob → 200.
@@ -118,7 +118,7 @@ func TestEndToEndClaimFlow(t *testing.T) {
 	if !strings.Contains(readAll(t, resp), "saved") {
 		t.Fatal("success response missing 'saved'")
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	t.Log("✓ POST encrypted blob returns 200")
 
 	// Wait returns (true, blob).
@@ -174,7 +174,7 @@ func TestBadTokenReturns404(t *testing.T) {
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("GET bad token: expected 404, got %d", resp.StatusCode)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	resp, err = client.Post(badURL, "application/x-www-form-urlencoded", strings.NewReader("value=test"))
 	if err != nil {
@@ -183,7 +183,7 @@ func TestBadTokenReturns404(t *testing.T) {
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("POST bad token: expected 404, got %d", resp.StatusCode)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	t.Log("✓ Bad token returns 404")
 }
 
@@ -212,7 +212,7 @@ func TestTokenReuseBlocked(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("first claim: expected 200, got %d", resp.StatusCode)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	srv.Wait()
 
 	// Second attempt → 404.
@@ -223,7 +223,7 @@ func TestTokenReuseBlocked(t *testing.T) {
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("reuse: expected 404, got %d", resp.StatusCode)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	t.Log("✓ Token reuse returns 404")
 }
 
@@ -232,7 +232,7 @@ func TestBoreTunnelSmoke(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 	localPort := ln.Addr().(*net.TCPAddr).Port
 
 	go func() {
@@ -240,8 +240,8 @@ func TestBoreTunnelSmoke(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
-		io.Copy(conn, conn)
+		defer func() { _ = conn.Close() }()
+		_, _ = io.Copy(conn, conn)
 	}()
 
 	tun, err := tunnel.Start(localPort)
@@ -277,7 +277,7 @@ func TestBatchClaimFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 	body := readAll(t, resp)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	for _, n := range names {
 		if !strings.Contains(body, n) {
 			t.Fatalf("form missing name %q", n)
@@ -301,7 +301,7 @@ func TestBatchClaimFlow(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("POST: expected 200, got %d", resp.StatusCode)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	t.Log("✓ POST multi-key blob returns 200")
 
 	ok, encBlob := srv.Wait()
@@ -370,7 +370,7 @@ func TestBackwardCompatSingleKey(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("POST: expected 200, got %d", resp.StatusCode)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	ok, encBlob := srv.Wait()
 	if !ok {
@@ -412,5 +412,3 @@ func readAll(t *testing.T, resp *http.Response) string {
 	}
 	return string(b)
 }
-
-

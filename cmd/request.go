@@ -88,7 +88,7 @@ func RunRequest(args []string) error {
 		}
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		enc.Encode(out)
+		_ = enc.Encode(out)
 	} else {
 		tunnelNote := ""
 		if cfg.Tunnel {
@@ -136,7 +136,7 @@ func RunRequest(args []string) error {
 		}
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		enc.Encode(out)
+		_ = enc.Encode(out)
 	} else {
 		if ok {
 			fmt.Println()
@@ -220,7 +220,7 @@ func parseRequestFlags(args []string) (*RequestConfig, error) {
 		return nil, err
 	}
 	if len(secretNames) == 0 {
-		return nil, fmt.Errorf("usage: pinchpass request <secret-name>... [flags]\n\nRun 'pinchpass --help' for available flags.")
+		return nil, fmt.Errorf("usage: pinchpass request <secret-name>... [flags]\n\nRun 'pinchpass --help' for available flags")
 	}
 	cfg.SecretNames = secretNames
 	return cfg, nil
