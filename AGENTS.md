@@ -21,10 +21,17 @@ go test -v -count=1 ./...    # run tests (count=1 disables cache)
 - `-json` flag prints machine-readable JSON (for agent parsing). Human mode prints link and blocks.
 - **Blocking**: `pinchpass` blocks until the user submits the secret or the TTL expires.
 
-## OpenClaw plugin
+## Agent skill
 
-A plugin at `.opencode/plugins/pinchpass/plugin.js` registers a `request_secret`
-tool. To install globally: `openclaw plugins install @rubybear-lgtm/pinchpass`.
+A universal skill at `skills/pinchpass/SKILL.md` teaches any agent how to
+install and use the `pinchpass` CLI. Install it via [skills.sh](https://skills.sh):
+
+```sh
+npx skills add rubybear-lgtm/pinchpass
+```
+
+Works with opencode, Claude Code, OpenClaw, Cursor, Windsurf, and 70+ other
+agents. No platform-specific plugins needed — the skill is the integration.
 
 ## Architecture
 

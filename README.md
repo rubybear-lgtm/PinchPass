@@ -1,6 +1,6 @@
 # pinchpass
 
-One-time secret request links for OpenClaw agents. Generates a temporary HTTP server with a single-use encrypted form for collecting sensitive values — works both locally and over the internet via a built-in bore.pub tunnel.
+One-time secret request links for AI agents. Generates a temporary HTTP server with a single-use encrypted form for collecting sensitive values — works both locally and over the internet via a built-in bore.pub tunnel.
 
 **The relay never sees the secret.** Secrets are encrypted client-side in the browser before transmission using XSalsa20-Poly1305 (TweetNaCl). The encryption key lives only in the URL fragment — it is never sent to the server or the tunnel relay.
 
@@ -103,12 +103,7 @@ Requires Go 1.25+.
 ├── token/token.go             # One-time token generation
 ├── store/store.go             # .env writer
 ├── pinchpass_test.go          # Integration tests
-├── plugins/pinchpass/         # OpenClaw plugin package
-│   ├── package.json
-│   ├── openclaw.plugin.json
-│   ├── SKILL.md
-│   └── src/index.ts
-└── .opencode/plugins/         # Auto-discovered local plugin
+└── skills/pinchpass/SKILL.md  # Universal agent skill (skills.sh)
 ```
 
 ## Tests
@@ -119,38 +114,30 @@ go test -v -count=1 ./...
 
 The bore tunnel smoke test (`TestBoreTunnelSmoke`) is skipped automatically if bore.pub is unreachable.
 
-## OpenClaw plugin
+## Agent skill
 
-This repo includes an OpenClaw plugin that registers a `request_secret` tool
-for collecting secrets from users. It also bundles a skill that teaches agents
-how to use `pinchpass` directly.
-
-### Local install (auto-discovered)
-
-The plugin at `.opencode/plugins/pinchpass/plugin.js` is auto-discovered when
-OpenClaw runs in this repo. No config needed.
-
-### Install from npm
+This repo includes a universal skill at `skills/pinchpass/SKILL.md` that teaches
+any AI agent how to install and use `pinchpass`. Install it via
+[skills.sh](https://skills.sh):
 
 ```bash
-openclaw plugins install @pinchpass/cli
+npx skills add rubybear-lgtm/pinchpass
 ```
 
-### Manual install
+Works with opencode, Claude Code, OpenClaw, Cursor, Windsurf, Gemini, and 70+
+other agents. The skill is the only integration needed — no platform-specific
+plugins.
+
+### Install to specific agents
 
 ```bash
-cd plugins/pinchpass
-npm install && npm run build
-# Copy the skill to your skills directory
-cp SKILL.md ~/.openclaw/workspace/skills/pinchpass/
+npx skills add rubybear-lgtm/pinchpass -a opencode -a claude-code -a openclaw
 ```
 
-### Publish to npm
+### Global install (available across all projects)
 
 ```bash
-cd plugins/pinchpass
-npm run build
-npm publish
+npx skills add rubybear-lgtm/pinchpass -g
 ```
 
 ## License
