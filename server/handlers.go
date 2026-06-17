@@ -72,6 +72,8 @@ const pageTemplate = `<!DOCTYPE html>
   h1::after{content:'▋';animation:blink 1s step-end infinite;margin-left:2px;color:#2aa198}
   @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
   .note{font-size:.85rem;color:var(--label);margin-bottom:1.25rem}
+  .e2e{font-size:.75rem;color:var(--label);margin-bottom:1rem;display:flex;align-items:center;gap:.4rem}
+  .e2e svg{flex-shrink:0;width:14px;height:14px;fill:#2aa198}
   .key-error{
     background:var(--err-bg);border:1px solid #dc322f;color:#dc322f;
     padding:.6rem .75rem;border-radius:4px;font-size:.82rem;margin-bottom:1rem;
@@ -110,6 +112,7 @@ const pageTemplate = `<!DOCTYPE html>
   <span class="badge">pinchpass request</span>
   <h1>{{.NamesText}}</h1>
   {{if .Note}}<p class="note">{{.Note}}</p>{{end}}
+  <p class="e2e"><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/></svg>End-to-end encrypted — your values are encrypted in-browser before leaving this page, even over HTTP.</p>
   <div id="key-error" class="key-error" style="display:none"></div>
   <div id="form-area">
     {{range $i, $name := .Names}}
