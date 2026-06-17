@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -161,6 +162,9 @@ func saveSecret(s store.Store, names []string, plain string) error {
 	var values map[string]string
 	if err := json.Unmarshal([]byte(plain), &values); err == nil {
 		for k, v := range values {
+			if !slices.Contains(names, k) {
+				return fmt.Errorf("unexpected key %q in payload", k)
+			}
 			if err := s.Save(k, v); err != nil {
 				return fmt.Errorf("save %s: %w", k, err)
 			}
