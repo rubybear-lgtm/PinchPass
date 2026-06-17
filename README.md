@@ -1,5 +1,9 @@
 # pinchpass
 
+<p align="center">
+  <img src="pinchpass.png" alt="pinchpass" width="400">
+</p>
+
 One-time secret request links for AI agents. Generates a temporary HTTP server with a single-use encrypted form for collecting sensitive values — works both locally and over the internet via a built-in bore.pub tunnel.
 
 **The relay never sees the secret.** Secrets are encrypted client-side in the browser before transmission using XSalsa20-Poly1305 (TweetNaCl). The encryption key lives only in the URL fragment — it is never sent to the server or the tunnel relay.
