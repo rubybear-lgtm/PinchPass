@@ -2,6 +2,8 @@
 name: release
 description: Tag and push a new version to trigger the GitHub Actions release workflow
 disable-model-invocation: true
+metadata:
+  internal: true
 ---
 
 Release a new version of pinchpass. Usage: `/release <version>` (e.g. `/release v1.2.0`).
