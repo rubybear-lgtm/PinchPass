@@ -1,7 +1,7 @@
 # pinchpass
 
 <p align="center">
-  <img src="pinchpass.png" alt="pinchpass" width="400">
+  <img src="pinchpass.png" alt="pinchpass" width="500" style="border:1px solid #d0d7de;border-radius:8px;">
 </p>
 
 One-time secret request links for AI agents. Generates a temporary HTTP server with a single-use encrypted form for collecting sensitive values — works both locally and over the internet via a built-in bore.pub tunnel.
