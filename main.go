@@ -26,7 +26,7 @@ Global Flags:
   -tunnel            Open a bore.pub tunnel for public URL access
 
 Examples:
-  pinchpass request GEMINI_API_KEY -note "Google AI Studio API key"
+  pinchpass request API_KEY -note "Production API key"
   pinchpass request DB_HOST DB_PORT DB_NAME -out .env
   pinchpass request WEBHOOK_SECRET -out config/secrets.env -json
   pinchpass request DATABASE_URL -port 9999 -ttl 15

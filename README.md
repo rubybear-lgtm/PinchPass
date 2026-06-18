@@ -11,7 +11,7 @@ One-time secret request links for AI agents. Generates a temporary HTTP server w
 ## How it works
 
 ```
-Agent runs:   pinchpass request GEMINI_API_KEY --tunnel --note "Google AI Studio key"
+Agent runs:   pinchpass request API_KEY -tunnel -note "Production API key"
               → http://bore.pub:38448/claim/abc123…#k=a1b2c3…
 
 User opens    → form with embedded TweetNaCl.js crypto (no WebCrypto required)
@@ -26,42 +26,72 @@ The link is:
 - **Token-authenticated** — 32-byte random hex token in the URL path
 - **Works anywhere** — local or public via bore.pub tunnel (no install required)
 
+## Install
+
+Prebuilt binaries are published on each release:
+
+```bash
+# macOS (Apple Silicon)
+curl -sL https://github.com/rubybear-lgtm/PinchPass/releases/latest/download/pinchpass-darwin-arm64 -o /usr/local/bin/pinchpass
+chmod +x /usr/local/bin/pinchpass
+
+# macOS (Intel) — use pinchpass-darwin-amd64
+# Linux (x86_64) — use pinchpass-linux-amd64
+# Linux (arm64)  — use pinchpass-linux-arm64
+```
+
+Or build from source (requires Go 1.25+):
+
+```bash
+go install github.com/rubybear-lgtm/pinchpass@latest
+```
+
 ## Usage
 
 ```bash
 # Local link (LAN only)
-pinchpass request GEMINI_API_KEY
+pinchpass request API_KEY
 
 # Public link via bore.pub tunnel
-pinchpass request GEMINI_API_KEY --tunnel
+pinchpass request API_KEY -tunnel
 
 # With note and custom output file
-pinchpass request GEMINI_API_KEY --note "Google AI Studio key" --out config/secrets.env
+pinchpass request API_KEY -note "Production API key" -out config/secrets.env
 
 # JSON output for agent parsing
-pinchpass request GEMINI_API_KEY --json
+pinchpass request API_KEY -json
 
 # Custom TTL (minutes)
-pinchpass request GEMINI_API_KEY --ttl 5
+pinchpass request API_KEY -ttl 5
+
+# Collect multiple secrets at once
+pinchpass request DB_HOST DB_PORT DB_NAME -out .env
+```
+
+Bare `pinchpass <name>` also works (auto-detected as `request <name>`):
+
+```bash
+pinchpass WEBHOOK_SECRET -tunnel -json
 ```
 
 ## Flags
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--tunnel` | false | Open a bore.pub tunnel for a public URL |
-| `--note` | — | Description shown on the form |
-| `--out` | `.env` | Output file path |
-| `--ttl` | 30 | Minutes until the link expires |
-| `--port` | random | Local port to bind |
-| `--json` | false | Machine-readable output |
+| `-tunnel` | false | Open a bore.pub tunnel for a public URL |
+| `-note` | — | Description shown on the form |
+| `-out` | `.env` | Output file path |
+| `-ttl` | 30 | Minutes until the link expires |
+| `-port` | random | Local port to bind |
+| `-listen-addr` | `127.0.0.1` | Address to listen on |
+| `-json` | false | Machine-readable output |
 
 ## Output
 
 The secret is saved to a `.env` file (default: `.env`):
 
 ```env
-GEMINI_API_KEY="AIzaSy..."
+API_KEY="sk-..."
 ```
 
 The value is shell-escaped. Existing keys are overwritten in place.
@@ -93,7 +123,8 @@ Browser                        Server (local)        Bore relay
 go build -o pinchpass .
 ```
 
-Requires Go 1.25+.
+Requires Go 1.25+. Module: `github.com/rubybear-lgtm/pinchpass`. Only
+dependency: `golang.org/x/crypto` (nacl/secretbox).
 
 ## Project structure
 

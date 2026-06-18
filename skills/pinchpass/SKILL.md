@@ -109,7 +109,7 @@ If `success` is false, the request timed out — no value was saved.
 
 ```bash
 # Collect an API key via public tunnel
-pinchpass request GEMINI_API_KEY -tunnel -json
+pinchpass request API_KEY -tunnel -json
 # → Prints link object with url field
 # → Agent gives url to user
 # → Agent waits for result
