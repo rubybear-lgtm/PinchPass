@@ -1,4 +1,4 @@
-# pinchpass
+# PinchPass
 
 <p align="center">
   <img src="pinchpass.png" alt="pinchpass" width="500" style="border:1px solid #d0d7de;border-radius:8px;">
