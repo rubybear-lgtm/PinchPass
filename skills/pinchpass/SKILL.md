@@ -1,6 +1,6 @@
 ---
 name: pinchpass
-description: Collect sensitive values (API keys, tokens, passwords, credentials) from the user via a one-time E2E-encrypted link. Use when you need a secret the user hasn't provided, when populating a .env file with credentials, or when the user says they need to give you a key/token/password. Trigger on keywords: API key, secret, token, credentials, password, .env.
+description: "Collect sensitive values (API keys, tokens, passwords, credentials) from the user via a one-time E2E-encrypted link. Use when you need a secret the user hasn't provided, when populating a .env file with credentials, or when the user says they need to give you a key/token/password. Trigger on keywords: API key, secret, token, credentials, password, .env."
 ---
 
 Securely collect sensitive values from users with end-to-end encryption. The
