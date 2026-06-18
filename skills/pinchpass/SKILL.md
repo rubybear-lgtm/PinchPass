@@ -118,13 +118,28 @@ pinchpass request API_KEY -tunnel -json
 
 ## Important behavior
 
-- **Blocking**: `pinchpass` blocks until the user submits or TTL expires. Run it
-  with `run_in_background` or in a subshell so you can present the URL while
-  waiting.
+- **Blocking + exec timeouts**: `pinchpass` blocks until the user submits or
+  TTL expires. If your agent's shell/exec tool has a command timeout (e.g.
+  OpenClaw's `exec` tool defaults to 1800s), it **will kill pinchpass** when
+  the timeout fires — and the bore tunnel dies with it, making the link return
+  "Connection refused." You MUST disable or raise the exec timeout so it
+  exceeds the TTL. Agent-specific guidance:
+  - **OpenClaw**: pass `timeout: 0` in the exec tool call (disables the exec
+    process timeout), and use `background: true` (or `yieldMs`) so you can
+    present the URL from the first JSON blob while pinchpass waits. Poll the
+    process or watch for the `.env` file to appear.
+  - **Claude Code / opencode**: use `run_in_background` / background bash. The
+    background session is not subject to the foreground command timeout.
+  - **Other agents**: if the agent has no background/timeout-free mode, run
+    pinchpass detached: `setsid nohup pinchpass request NAME -tunnel -json
+    > /tmp/pinchpass.json 2>&1 &` then read `/tmp/pinchpass.json` for the URL.
+    The process survives the agent's exec session. Check for the `.env` file
+    or poll `ps` to detect completion.
 - **One-time use**: after the first submission, the token is consumed. A second
   POST returns 404. If it fails, generate a new link.
 - **TTL expiry**: the server shuts down after the TTL. Exit code is 1. Generate
-  a new link with a longer `-ttl` if needed.
+  a new link with a longer `-ttl` if needed. Keep the TTL shorter than the exec
+  timeout so pinchpass exits on its own before the agent can kill it.
 - **Shell escaping**: values in `.env` are shell-escaped (`\`, `"`, `$`, `` ` ``).
   Existing keys are overwritten in place.
 - **No tunnel**: without `-tunnel`, the link is only reachable on
