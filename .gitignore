@@ -2,3 +2,6 @@
 .env
 *.swp
 CLAUDE.local.md
+
+# npm package
+plugins/pinchpass/node_modules/

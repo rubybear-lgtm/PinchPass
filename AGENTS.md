@@ -33,6 +33,19 @@ npx skills add rubybear-lgtm/pinchpass
 Works with opencode, Claude Code, OpenClaw, Cursor, Windsurf, and 70+ other
 agents. No platform-specific plugins needed — the skill is the integration.
 
+## npm / Pi package
+
+- `plugins/pinchpass/` is the `@pinchpass/cli` npm package — dual-mode
+  extension: native Pi tool (`request_secret`, spawns CLI + streams URL) and
+  OpenClaw plugin (same tool name, `$.raw` backend).
+- `pi` manifest in `package.json`: `dist/index.js` (extension) + `skills/`
+  (skill copied from `skills/pinchpass/SKILL.md` by `scripts/copy-skill.js` at build).
+- Build/publish: `cd plugins/pinchpass && npm install && npm publish`.
+  `postinstall` (`scripts/install-binary.js`) downloads the prebuilt binary to
+  `~/.local/bin` (falls back to existing installs in `~/.openclaw/bin`, `~/.pi/bin`).
+- `release.yml` publishes the package to npm on every `v*` tag (needs
+  `NPM_TOKEN` secret) and syncs the npm version to the tag.
+
 ## Architecture
 
 - `main.go` entrypoint → delegates to `cmd.RunRequest()`.

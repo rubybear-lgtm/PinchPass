@@ -57,3 +57,22 @@ jobs:
         with:
           files: pinchpass-*
           generate_release_notes: true
+
+  publish-npm:
+    runs-on: ubuntu-latest
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: https://registry.npmjs.org
+      - name: Publish @pinchpass/cli
+        working-directory: plugins/pinchpass
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

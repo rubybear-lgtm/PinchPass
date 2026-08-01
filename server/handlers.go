@@ -268,15 +268,22 @@ func (s *Server) handleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.setEncryptedBlob(blob)
-
+	// Send the success response BEFORE unblocking Wait(): the CLI process exits
+	// as soon as Wait() returns, which would otherwise cut this response off
+	// mid-flight and make the browser show a network error after submitting.
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	successName := s.secretNames[0]
 	if len(s.secretNames) > 1 {
 		successName = fmt.Sprintf("All %d secrets", len(s.secretNames))
 	}
 	t, _ := template.New("s").Parse(successFragment)
-	_ = t.Execute(w, resultData{Success: true, Name: successName})
+	if err := t.Execute(w, resultData{Success: true, Name: successName}); err != nil {
+		return // client disconnected — nothing to claim
+	}
+	if f, ok := w.(http.Flusher); ok {
+		f.Flush()
+	}
+	s.setEncryptedBlob(blob)
 }
 
 func (s *Server) renderExpired(w http.ResponseWriter) {

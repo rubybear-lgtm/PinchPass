@@ -149,6 +149,20 @@ go test -v -count=1 ./...
 
 The bore tunnel smoke test (`TestBoreTunnelSmoke`) is skipped automatically if bore.pub is unreachable.
 
+## Pi integration
+
+PinchPass ships as a native [Pi](https://pi.dev) package (`@pinchpass/cli`):
+
+```bash
+pi install npm:@pinchpass/cli
+```
+
+This registers a **`request_secret` tool** that streams the one-time link to
+the user immediately, blocks until they submit or the TTL expires, and saves
+the secret to `.env` — cancelable with `Esc`, no exec-timeout pitfalls. The
+same package also works on OpenClaw, and the universal skill works on 70+
+agents via skills.sh.
+
 ## Agent skill
 
 This repo includes a universal skill at `skills/pinchpass/SKILL.md` that teaches
