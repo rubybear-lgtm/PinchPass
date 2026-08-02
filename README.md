@@ -157,9 +157,11 @@ PinchPass ships as a native [Pi](https://pi.dev) package (`@pinchpass/cli`):
 pi install npm:@pinchpass/cli
 ```
 
-This registers a **`request_secret` tool** that streams the one-time link to
-the user immediately, blocks until they submit or the TTL expires, and saves
-the secret to `.env` — cancelable with `Esc`, no exec-timeout pitfalls. The
+This registers a **`request_secret` tool** with two modes: a Pi dialog
+(`via: "modal"`, default in the TUI) that collects each secret directly into
+`.env` — the value never reaches the LLM or the transcript, no server started
+— or the E2E-encrypted browser link flow (`via: "link"`), streaming the link
+to the user immediately, blocking until submit/TTL. Cancelable with `Esc`. The
 same package also works on OpenClaw, and the universal skill works on 70+
 agents via skills.sh.
 

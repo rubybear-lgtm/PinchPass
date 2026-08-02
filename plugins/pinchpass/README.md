@@ -27,13 +27,17 @@ pi install npm:@pinchpass/cli
 
 That registers:
 
-- **`request_secret` tool** — spawns the CLI, streams the one-time link to the
-  user immediately, blocks until they submit or the TTL expires, then returns
-  the result (saved to `.env`). Cancelable with `Esc`.
+- **`request_secret` tool** — two collection modes:
+  - `via: "modal"` (default in the TUI): a Pi dialog collects each secret
+    directly into `.env` — the value never reaches the LLM, never enters the
+    transcript, and no server is started. Cancelable with `Esc`.
+  - `via: "link"`: spawns the CLI, streams the one-time E2E-encrypted link to
+    the user immediately, blocks until they submit or the TTL expires.
+  - `via` defaults to `"auto"`: modal in the TUI, link everywhere else.
 - **`pinchpass` skill** — full usage guidance for the model.
 
 The binary is resolved from `PATH`, `~/.local/bin`, `~/.openclaw/bin`, and
-`~/.pi/bin` — no PATH configuration required.
+`~/.pi/bin` — no PATH configuration required (not needed for the modal mode).
 
 ## OpenClaw
 

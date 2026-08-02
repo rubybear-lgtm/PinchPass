@@ -36,8 +36,9 @@ agents. No platform-specific plugins needed — the skill is the integration.
 ## npm / Pi package
 
 - `plugins/pinchpass/` is the `@pinchpass/cli` npm package — dual-mode
-  extension: native Pi tool (`request_secret`, spawns CLI + streams URL) and
-  OpenClaw plugin (same tool name, `$.raw` backend).
+  extension: native Pi tool (`request_secret`: `via` modal dialog → direct
+  `.env` write, or `via` link → spawns CLI + streams URL) and OpenClaw plugin
+  (same tool name, `$.raw` backend).
 - `pi` manifest in `package.json`: `dist/index.js` (extension) + `skills/`
   (skill copied from `skills/pinchpass/SKILL.md` by `scripts/copy-skill.js` at build).
 - Build/publish: `cd plugins/pinchpass && npm install && npm publish`.

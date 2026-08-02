@@ -93,12 +93,20 @@ Use `-tunnel` when the user is not on the same machine (the default binds to
 
 ## Pi-native tool
 
-On Pi, the `@pinchpass/cli` package registers a **`request_secret`** tool that
-wraps this whole workflow natively: it spawns the CLI, streams the link to the
-user immediately (visible in the TUI), blocks until submit/TTL, and returns the
-result. Cancelable with `Esc`. No shell, no exec timeouts, no background
-process management needed. Prefer the tool on Pi; use the CLI workflow below on
-other agents.
+On Pi, the `@pinchpass/cli` package registers a **`request_secret`** tool with
+two collection modes (`via` param):
+
+- **`modal`** (default in the interactive TUI): a Pi dialog collects each
+  secret directly into the `.env` file. The value goes straight from the
+  user's keyboard to disk — never to the LLM, never into the transcript, no
+  server, no network. Cancelable with `Esc`.
+- **`link`**: spawns the CLI, streams the one-time E2E-encrypted browser link
+  to the user immediately, blocks until submit/TTL. Use when the user is not
+  in the same Pi session (remote, tunneled, or RPC clients without a dialog
+  handler).
+
+`via` defaults to `auto`: modal in the TUI, link elsewhere. Prefer the tool on
+Pi; use the CLI workflow below on other agents.
 
 ## Workflow
 

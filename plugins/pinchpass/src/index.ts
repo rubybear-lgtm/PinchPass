@@ -11,10 +11,11 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { StringEnum } from "@earendil-works/pi-ai";
 import { spawn } from "node:child_process";
-import { accessSync, constants } from "node:fs";
+import { accessSync, constants, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 /** Extra directories where the postinstall script may have placed the binary. */
 const FALLBACK_DIRS = [
@@ -89,6 +90,90 @@ interface RequestArgs {
   note?: string;
   ttl?: number;
   out?: string;
+  via?: "auto" | "modal" | "link";
+}
+
+/** Shell-escape a value for a double-quoted .env line (mirrors store.go). */
+function escapeEnvValue(s: string): string {
+  return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\$/g, "\\$").replace(/`/g, "\\`");
+}
+
+/** Write/update a single KEY="value" line in a .env file (mirrors store.go). */
+function writeEnvKey(path: string, key: string, value: string) {
+  mkdirSync(dirname(path), { recursive: true });
+  const line = `${key}="${escapeEnvValue(value)}"`;
+  let existing = "";
+  try {
+    existing = readFileSync(path, "utf8");
+  } catch {
+    // new file
+  }
+  const out: string[] = [];
+  let replaced = false;
+  for (const l of existing.split("\n")) {
+    const t = l.trim();
+    if (t === "") continue;
+    if (t.startsWith(key + "=")) {
+      out.push(line);
+      replaced = true;
+    } else {
+      out.push(l);
+    }
+  }
+  if (!replaced) out.push(line);
+  writeFileSync(path, out.join("\n") + "\n", { mode: 0o600 });
+}
+
+/**
+ * Collect secrets directly in the Pi UI via modal dialogs. The value goes
+ * straight from the user's keyboard into the .env file — it is never sent to
+ * the LLM, never enters the session transcript, and no server is started.
+ */
+async function collectViaModal(ctx: { cwd: string; ui: { input: (title: string, placeholder?: string, opts?: { signal?: AbortSignal }) => Promise<string | undefined> } }, params: RequestArgs, signal?: AbortSignal) {
+  const outPath = resolve(ctx.cwd, params.out ?? ".env");
+  const saved: string[] = [];
+  for (const name of params.names) {
+    const value = await ctx.ui.input(`Enter ${name}`, params.note ?? `Secret value for ${name}`, {
+      signal,
+    });
+    if (value === undefined) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Secret request cancelled — ${name} not provided.${saved.length ? ` (${saved.join(", ")} already saved)` : ""} No further secrets were collected.`,
+          },
+        ],
+        details: { success: false, names: params.names, saved, aborted: true },
+      };
+    }
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Secret request cancelled — ${name} was empty.${saved.length ? ` (${saved.join(", ")} already saved)` : ""}`,
+          },
+        ],
+        details: { success: false, names: params.names, saved, aborted: true },
+      };
+    }
+    writeEnvKey(outPath, name, trimmed);
+    saved.push(name);
+  }
+  return {
+    content: [
+      { type: "text" as const, text: `✅ Secrets collected via Pi modal: ${saved.join(", ")}\nSaved to ${outPath}` },
+    ],
+    details: {
+      success: true,
+      names: saved,
+      message: "Secrets collected via Pi modal.",
+      url: undefined,
+      aborted: false,
+    },
+  };
 }
 
 function buildArgs(params: RequestArgs): string[] {
@@ -109,14 +194,16 @@ function registerPiTool(pi: ExtensionAPI) {
     name: "request_secret",
     label: "Request Secret",
     description:
-      "Collect sensitive values (API keys, tokens, passwords, connection strings) from the user via a one-time E2E-encrypted link. " +
-      "Starts a local pinchpass server, streams the link to the user immediately, and blocks until they submit the secret or the TTL expires. " +
-      "On success the secret is saved to the .env file and this tool returns the result.",
-    promptSnippet: "Collect secrets from the user through an encrypted one-time link",
+      "Collect sensitive values (API keys, tokens, passwords, connection strings) from the user. " +
+      "With via='modal' (default in the Pi TUI) a dialog collects each value directly into the .env file — the value never reaches the LLM. " +
+      "With via='link' it starts a local pinchpass server and streams a one-time E2E-encrypted link to the user immediately, blocking until they submit or the TTL expires. " +
+      "On success the secrets are saved to the .env file and this tool returns the result.",
+    promptSnippet: "Collect secrets from the user through an encrypted one-time link or a Pi modal",
     promptGuidelines: [
       "Use request_secret when you need an API key, token, or password from the user — never ask them to paste secrets directly into chat.",
-      "request_secret streams the link to the user immediately; wait for its result before continuing.",
+      "request_secret streams the link (or shows the modal) to the user immediately; wait for its result before continuing.",
       "Use request_secret with tunnel: true when the user is not on the same machine as this agent.",
+      "Use request_secret with via: 'link' to force the encrypted browser link, or via: 'modal' to force the Pi dialog.",
     ],
     parameters: Type.Object({
       names: Type.Array(Type.String({ description: "Secret name(s) to collect, e.g. ['GEMINI_API_KEY']" }), {
@@ -129,8 +216,30 @@ function registerPiTool(pi: ExtensionAPI) {
       note: Type.Optional(Type.String({ description: "Description shown on the form to help the user" })),
       ttl: Type.Optional(Type.Number({ description: "Minutes until the link expires (default: 30)" })),
       out: Type.Optional(Type.String({ description: "Output .env file path (default: .env in the working directory)" })),
+      via: Type.Optional(
+        StringEnum(["auto", "modal", "link"] as const, {
+          description: "How to collect: 'modal' prompts in the Pi UI, 'link' generates the encrypted browser link, 'auto' picks modal in the TUI and link elsewhere (default: auto)",
+        }),
+      ),
     }),
     async execute(_toolCallId, params: RequestArgs, signal, onUpdate, ctx) {
+      const via = params.via ?? "auto";
+      const useModal = via === "modal" || (via === "auto" && ctx.mode === "tui");
+      if (useModal) {
+        if (!ctx.hasUI) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: "Modal collection is unavailable here (no interactive UI in this mode). Call request_secret again with via: 'link' to use the encrypted browser link.",
+              },
+            ],
+            details: { success: false, names: params.names, error: "no-ui" },
+          };
+        }
+        return collectViaModal(ctx, params, signal);
+      }
+
       const binary = findBinary();
       if (!binary) {
         throw new Error(BINARY_MISSING);
@@ -168,7 +277,7 @@ function registerPiTool(pi: ExtensionAPI) {
                 onUpdate?.({
                   content: [
                     {
-                      type: "text",
+                      type: "text" as const,
                       text: `🔗 One-time E2E-encrypted secret request link${ttlNote}:\n${b.url}\n\nAsk the user to open it and submit ${(b.names ?? []).join(", ") || "the secret"}.`,
                     },
                   ],
@@ -188,7 +297,7 @@ function registerPiTool(pi: ExtensionAPI) {
           return {
             content: [
               {
-                type: "text",
+                type: "text" as const,
                 text: `Secret request cancelled (${params.names.join(", ")}). No value was saved.`,
               },
             ],
@@ -212,7 +321,7 @@ function registerPiTool(pi: ExtensionAPI) {
         if (success) lines.push(`Saved to ${params.out ?? ".env"} in ${ctx.cwd}`);
 
         return {
-          content: [{ type: "text", text: lines.join("\n") }],
+          content: [{ type: "text" as const, text: lines.join("\n") }],
           details: {
             success,
             names: lastBlob.names ?? params.names,
