@@ -44,8 +44,10 @@ agents. No platform-specific plugins needed — the skill is the integration.
 - Build/publish: `cd plugins/pinchpass && npm install && npm publish`.
   `postinstall` (`scripts/install-binary.js`) downloads the prebuilt binary to
   `~/.local/bin` (falls back to existing installs in `~/.openclaw/bin`, `~/.pi/bin`).
-- `release.yml` publishes the package to npm on every `v*` tag (needs
-  `NPM_TOKEN` secret) and syncs the npm version to the tag.
+- `release.yml` publishes the package to npm on every `v*` tag via **Trusted
+  Publishing (OIDC)** (`npm publish --provenance`) — no `NPM_TOKEN` secret
+  needed; the npm package must have `rubybear-lgtm/PinchPass` (workflow
+  `release.yml`) configured as a trusted publisher in the npm web UI.
 
 ## Architecture
 
