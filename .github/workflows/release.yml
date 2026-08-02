@@ -74,12 +74,13 @@ jobs:
       - name: Publish @pinchpass/cli (Trusted Publishing)
         working-directory: plugins/pinchpass
         run: |
+          echo "OIDC env: URL=${ACTIONS_ID_TOKEN_REQUEST_URL:+present} TOKEN=${ACTIONS_ID_TOKEN_REQUEST_TOKEN:+present}"
           npm install --ignore-scripts --no-audit --no-fund
           CURRENT=$(node -p "require('./package.json').version")
           TAG="${GITHUB_REF_NAME#v}"
           if [ "$CURRENT" != "$TAG" ]; then
             npm version "$TAG" --no-git-tag-version
           fi
-          npm publish --provenance --access public
+          npm publish --provenance --access public --loglevel verbose
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
