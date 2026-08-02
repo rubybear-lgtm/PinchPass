@@ -76,20 +76,9 @@ jobs:
         run: |
           npm install -g npm@11 --no-audit --no-fund
           npm install --ignore-scripts --no-audit --no-fund
-          # DEBUG: dump the OIDC claims GitHub issued
-          python3 - <<'EOF'
-          import json, base64, os, urllib.request
-          req = urllib.request.Request(
-              os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"] + "&audience=npm:registry.npmjs.org",
-              headers={"Authorization": "Bearer " + os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"]},
-          )
-          token = json.load(urllib.request.urlopen(req))["value"]
-          claims = json.loads(base64.urlsafe_b64decode(token.split(".")[1] + "=="))
-          print(json.dumps(claims, indent=1))
-          EOF
           CURRENT=$(node -p "require('./package.json').version")
           TAG="${GITHUB_REF_NAME#v}"
           if [ "$CURRENT" != "$TAG" ]; then
             npm version "$TAG" --no-git-tag-version
           fi
-          npm publish --provenance --access public --loglevel verbose
+          npm publish --provenance --access public
