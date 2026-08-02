@@ -1,9 +1,15 @@
 import { Type } from "typebox";
 import { StringEnum } from "@earendil-works/pi-ai";
+import { Box, Text } from "@earendil-works/pi-tui";
 import { spawn } from "node:child_process";
 import { accessSync, constants, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+/** Small figlet "small" font rendering of PINCHPASS. */
+const PINCHPASS_ART = "  ___ ___ _  _  ___ _  _ ___  _   ___ ___ \n" +
+    " | _ \\_ _| \\| |/ __| || | _ \\/_\\ / __/ __|\n" +
+    " |  _/| || .` | (__| __ |  _/ _ \\\\__ \\__ \\\n" +
+    " |_| |___|_|\\_|\\___|_||_|_|/_/ \\_\\___/___/";
 /** Extra directories where the postinstall script may have placed the binary. */
 const FALLBACK_DIRS = [
     join(homedir(), ".local", "bin"),
@@ -108,6 +114,98 @@ function writeEnvKey(path, key, value) {
     writeFileSync(path, out.join("\n") + "\n", { mode: 0o600 });
 }
 /**
+ * Branded masked secret dialog (Pi TUI overlay). The value is rendered as
+ * bullets, never echoed, and submitted straight to the caller.
+ */
+async function promptSecretTUI(ctx, name, note, signal) {
+    return ctx.ui.custom((tui, theme, _kb, done) => {
+        let value = "";
+        let alive = true;
+        const finish = (v) => {
+            if (!alive)
+                return;
+            alive = false;
+            if (signal)
+                signal.removeEventListener("abort", onAbort);
+            done(v);
+        };
+        const onAbort = () => finish(undefined);
+        if (signal) {
+            if (signal.aborted) {
+                onAbort();
+            }
+            else {
+                signal.addEventListener("abort", onAbort, { once: true });
+            }
+        }
+        const comp = {
+            focused: true,
+            handleInput(data) {
+                if (!alive)
+                    return;
+                // Ignore escape sequences (arrows etc.) as a whole chunk.
+                if (data.startsWith("\u001b["))
+                    return;
+                if (data === "\u001b") {
+                    finish(undefined);
+                    return;
+                }
+                for (const ch of data) {
+                    if (ch === "\r" || ch === "\n") {
+                        finish(value);
+                        return;
+                    }
+                    if (ch === "\u0003") {
+                        finish(undefined);
+                        return;
+                    }
+                    if (ch === "\u007f" || ch === "\b") {
+                        value = value.slice(0, -1);
+                    }
+                    else if (ch >= " " && ch !== "\u007f") {
+                        value += ch;
+                    }
+                }
+                tui.requestRender(true);
+            },
+            invalidate() { },
+            render(width) {
+                const art = PINCHPASS_ART.split("\n");
+                const boxW = Math.min(width - 6, 46);
+                const pad = Math.max(0, Math.floor((width - boxW) / 2));
+                const lines = [];
+                lines.push("");
+                for (const a of art) {
+                    lines.push(" ".repeat(pad) + theme.fg("muted", a));
+                }
+                lines.push(" ".repeat(pad) + theme.fg("toolTitle", theme.bold(`  🔐  ${name}`)));
+                if (note)
+                    lines.push(" ".repeat(pad) + theme.fg("dim", `      ${note}`));
+                lines.push("");
+                const dots = Math.min(value.length, boxW - 8);
+                const mask = "•".repeat(dots);
+                const cursor = value.length <= boxW - 8 ? "█" : "";
+                const inner = "  " + mask + cursor + " ".repeat(Math.max(1, boxW - 6 - dots - (cursor ? 1 : 0)));
+                lines.push(" ".repeat(pad) + theme.fg("borderAccent", "┌" + "─".repeat(boxW - 2) + "┐"));
+                lines.push(" ".repeat(pad) +
+                    theme.fg("borderAccent", "│") +
+                    theme.fg("accent", inner) +
+                    theme.fg("borderAccent", "│"));
+                lines.push(" ".repeat(pad) + theme.fg("borderAccent", "└" + "─".repeat(boxW - 2) + "┘"));
+                lines.push("");
+                lines.push(" ".repeat(pad) +
+                    theme.fg("dim", "enter submit") +
+                    theme.fg("muted", "    esc cancel"));
+                return lines;
+            },
+        };
+        return comp;
+    }, {
+        overlay: true,
+        overlayOptions: { width: "60%", minWidth: 54, maxHeight: "65%" },
+    });
+}
+/**
  * Collect secrets directly in the Pi UI via modal dialogs. The value goes
  * straight from the user's keyboard into the .env file — it is never sent to
  * the LLM, never enters the session transcript, and no server is started.
@@ -116,9 +214,11 @@ async function collectViaModal(ctx, params, signal) {
     const outPath = resolve(ctx.cwd, params.out ?? ".env");
     const saved = [];
     for (const name of params.names) {
-        const value = await ctx.ui.input(`Enter ${name}`, params.note ?? `Secret value for ${name}`, {
-            signal,
-        });
+        const value = ctx.mode === "tui"
+            ? await promptSecretTUI(ctx, name, params.note ?? "", signal)
+            : await ctx.ui.input(`Enter ${name}`, params.note ?? `Secret value for ${name}`, {
+                signal,
+            });
         if (value === undefined) {
             return {
                 content: [
@@ -154,6 +254,7 @@ async function collectViaModal(ctx, params, signal) {
             names: saved,
             message: "Secrets collected via Pi modal.",
             url: undefined,
+            out: outPath,
             aborted: false,
         },
     };
@@ -300,6 +401,7 @@ function registerPiTool(pi) {
                         url: firstBlob?.url,
                         message: lastBlob.message,
                         port: lastBlob.port,
+                        out: resolve(ctx.cwd, params.out ?? ".env"),
                         aborted: false,
                     },
                 };
@@ -308,6 +410,53 @@ function registerPiTool(pi) {
                 if (signal)
                     signal.removeEventListener("abort", onAbort);
             }
+        },
+        /* Pretty TUI rendering: call line, result card. */
+        renderCall(args, theme) {
+            const names = (args.names ?? []).join(", ");
+            const via = args.via ?? "auto";
+            let text = theme.fg("accent", "🔐 ") +
+                theme.fg("toolTitle", theme.bold("pinchpass")) +
+                theme.fg("dim", " · ") +
+                theme.fg("accent", names);
+            if (args.tunnel)
+                text += theme.fg("dim", " · tunnel");
+            text += theme.fg("muted", ` · ${via}`);
+            return new Text(text, 0, 0);
+        },
+        renderResult(result, options, theme) {
+            if (options.isPartial) {
+                return new Text(theme.fg("warning", "⏳ Waiting for the user to submit…"), 0, 0);
+            }
+            const details = (result.details ?? {});
+            const success = details.success === true;
+            const aborted = details.aborted === true;
+            const names = (details.names ?? []).join(", ");
+            const bg = success ? "toolSuccessBg" : aborted ? "toolPendingBg" : "toolErrorBg";
+            const box = new Box(1, 1, (t) => theme.bg(bg, t));
+            const statusColor = success ? "success" : aborted ? "warning" : "error";
+            const head = success
+                ? "✅  Secrets collected"
+                : aborted
+                    ? "✋  Cancelled"
+                    : `❌  ${details.message ?? "Failed"}`;
+            box.addChild(new Text(theme.fg("toolTitle", theme.bold(head))));
+            if (names)
+                box.addChild(new Text(theme.fg(statusColor, `     ${names}`)));
+            if (options.expanded) {
+                box.addChild(new Text(""));
+                if (details.url)
+                    box.addChild(new Text(theme.fg("dim", `     Link: ${details.url}`)));
+                if (details.out)
+                    box.addChild(new Text(theme.fg("dim", `     Saved to: ${details.out}`)));
+                if (details.message)
+                    box.addChild(new Text(theme.fg("muted", `     ${details.message}`)));
+                box.addChild(new Text(""));
+                for (const line of PINCHPASS_ART.split("\n")) {
+                    box.addChild(new Text(theme.fg("muted", `     ${line}`)));
+                }
+            }
+            return box;
         },
     });
 }
