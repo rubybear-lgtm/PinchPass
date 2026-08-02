@@ -1,6 +1,6 @@
 {
   "name": "@pinchpass/cli",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "One-time E2E-encrypted secret request links — native for Pi and OpenClaw agents",
   "repository": {
     "type": "git",
@@ -24,11 +24,18 @@
     "README.md"
   ],
   "pi": {
-    "extensions": ["./dist/index.js"],
-    "skills": ["./skills"]
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "skills": [
+      "./skills"
+    ],
+    "image": "https://raw.githubusercontent.com/rubybear-lgtm/PinchPass/master/pinchpass.png"
   },
   "openclaw": {
-    "extensions": ["./dist/index.js"]
+    "extensions": [
+      "./dist/index.js"
+    ]
   },
   "scripts": {
     "build": "tsc && node scripts/copy-skill.js",
