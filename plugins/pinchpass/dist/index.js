@@ -184,8 +184,8 @@ async function promptSecretTUI(ctx, name, note, signal) {
                 lines.push("");
                 const dots = Math.min(value.length, boxW - 8);
                 const mask = "•".repeat(dots);
-                const cursor = value.length <= boxW - 8 ? "█" : "";
-                const inner = "  " + mask + cursor + " ".repeat(Math.max(1, boxW - 6 - dots - (cursor ? 1 : 0)));
+                const cursor = value.length < boxW - 8 ? "█" : "";
+                const inner = "  " + mask + cursor + " ".repeat(Math.max(0, boxW - 4 - dots - (cursor ? 1 : 0)));
                 lines.push(" ".repeat(pad) + theme.fg("borderAccent", "┌" + "─".repeat(boxW - 2) + "┐"));
                 lines.push(" ".repeat(pad) +
                     theme.fg("borderAccent", "│") +
