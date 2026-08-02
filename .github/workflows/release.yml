@@ -77,13 +77,19 @@ jobs:
           npm install -g npm@11 --no-audit --no-fund
           npm install --ignore-scripts --no-audit --no-fund
           # DEBUG: dump the OIDC claims GitHub issued
-          IDTOKEN=$(curl -sS -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=npm:registry.npmjs.org" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);const p=JSON.parse(Buffer.from(j.value.split('.')[1],'base64').toString());console.log(JSON.stringify(p,null,1))}")
-          echo "OIDC CLAIMS: $IDTOKEN"
+          python3 - <<'EOF'
+          import json, base64, os, urllib.request
+          req = urllib.request.Request(
+              os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"] + "&audience=npm:registry.npmjs.org",
+              headers={"Authorization": "Bearer " + os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"]},
+          )
+          token = json.load(urllib.request.urlopen(req))["value"]
+          claims = json.loads(base64.urlsafe_b64decode(token.split(".")[1] + "=="))
+          print(json.dumps(claims, indent=1))
+          EOF
           CURRENT=$(node -p "require('./package.json').version")
           TAG="${GITHUB_REF_NAME#v}"
           if [ "$CURRENT" != "$TAG" ]; then
             npm version "$TAG" --no-git-tag-version
           fi
           npm publish --provenance --access public --loglevel verbose
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
