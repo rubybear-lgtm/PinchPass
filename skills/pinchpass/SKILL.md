@@ -99,14 +99,24 @@ two collection modes (`via` param):
 - **`modal`** (default in the interactive TUI): a Pi dialog collects each
   secret directly into the `.env` file. The value goes straight from the
   user's keyboard to disk — never to the LLM, never into the transcript, no
-  server, no network. Cancelable with `Esc`.
+  server, no network. Cancelable with `Esc`. `ttl` does not apply to this mode
+  and is ignored.
 - **`link`**: spawns the CLI, streams the one-time E2E-encrypted browser link
   to the user immediately, blocks until submit/TTL. Use when the user is not
   in the same Pi session (remote, tunneled, or RPC clients without a dialog
   handler).
 
-`via` defaults to `auto`: modal in the TUI, link elsewhere. Prefer the tool on
-Pi; use the CLI workflow below on other agents.
+`via` defaults to `auto`: modal in the TUI, link elsewhere. Setting
+`tunnel: true` always uses the link, even in the TUI, because the modal cannot
+serve a remote user.
+
+**Privacy note:** in `link` mode the full URL — including the `#k=` decryption
+key fragment — is returned to the model and recorded in the transcript. Only
+`modal` keeps the secret out of the transcript entirely. Prefer `modal` when
+the user is local and the value is sensitive; use `link` when you must send a
+URL over a channel the model can see.
+
+Prefer the tool on Pi; use the CLI workflow below on other agents.
 
 ## Workflow
 

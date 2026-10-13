@@ -30,10 +30,15 @@ That registers:
 - **`request_secret` tool** — two collection modes:
   - `via: "modal"` (default in the TUI): a Pi dialog collects each secret
     directly into `.env` — the value never reaches the LLM, never enters the
-    transcript, and no server is started. Cancelable with `Esc`.
+    transcript, and no server is started. Cancelable with `Esc`. `ttl` does not
+    apply here and is ignored.
   - `via: "link"`: spawns the CLI, streams the one-time E2E-encrypted link to
-    the user immediately, blocks until they submit or the TTL expires.
+    the user immediately, blocks until they submit or the TTL expires. The URL
+    (including its `#k=` decryption-key fragment) is shown to the model and
+    stays in the transcript, so prefer the modal when the secret is sensitive.
   - `via` defaults to `"auto"`: modal in the TUI, link everywhere else.
+  - `tunnel: true` always uses the link, even in the TUI — the modal cannot
+    serve a remote user.
 - **`pinchpass` skill** — full usage guidance for the model.
 
 The binary is resolved from `PATH`, `~/.local/bin`, `~/.openclaw/bin`, and
@@ -58,6 +63,7 @@ pinchpass request <secret-name>... [flags]
 | `-out`     | `.env`    | Output .env file path                   |
 | `-ttl`     | 30        | Minutes until the link expires          |
 | `-port`    | random    | Local port to bind                      |
+| `-listen-addr` | `127.0.0.1` | Address to listen on               |
 | `-json`    | false     | Machine-readable JSON output            |
 
 ## License

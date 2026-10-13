@@ -6,11 +6,24 @@ Single-purpose Go tool: generate one-time E2E-encrypted secret request links.
 
 ```sh
 go build -o pinchpass .          # build
+go vet ./...                    # vet
+gofmt -l $(git ls-files '*.go')  # format check
 go test -v -count=1 ./...    # run tests (count=1 disables cache)
 ```
 
-- Go 1.25+ required. Module: `github.com/rubybear-lgtm/pinchpass`
+- Go 1.26+ required. Module: `github.com/rubybear-lgtm/pinchpass`
 - Only dependency: `golang.org/x/crypto` (nacl/secretbox)
+
+## CI
+
+`.github/workflows/ci.yml` runs on pushes and PRs: the `go` job checks
+`gofmt`, `go vet`, `go build`, and `go test -race`; the `npm` job installs with
+`--ignore-scripts` (no binary download), typechecks, then `npm test`. Other
+workflows: `codeql.yml` (Go + TS scanning), `dependency-review.yml` (PRs),
+`scorecard.yml` (OpenSSF), and `release.yml` (tag-triggered build + npm
+publish). `dependabot.yml` opens weekly bump PRs for Go, npm, and actions —
+keep the `go` directive in `go.mod` in step with the workflow's
+`go-version-file`, since `x/crypto` sets the floor.
 
 ## CLI quirks
 
@@ -44,6 +57,12 @@ agents. No platform-specific plugins needed — the skill is the integration.
 - Build/publish: `cd plugins/pinchpass && npm install && npm publish`.
   `postinstall` (`scripts/install-binary.js`) downloads the prebuilt binary to
   `~/.local/bin` (falls back to existing installs in `~/.openclaw/bin`, `~/.pi/bin`).
+- Test: `cd plugins/pinchpass && npm test` (builds `dist/`, then `node --test`).
+- Loading a local build in Pi: `pi install <repo>/plugins/pinchpass` makes Pi
+  load `dist/index.js` directly. **`/reload` does not pick up a rebuilt `dist/`**
+  — Node's ESM cache serves the module already loaded for that path. Restart Pi
+  after rebuilding. (`/reload` only helps the first time, before anything is
+  cached.)
 - `release.yml` publishes the package to npm on every `v*` tag via **Trusted
   Publishing (OIDC)** (`npm publish --provenance`) — no `NPM_TOKEN` secret
   needed; the npm package must have `rubybear-lgtm/PinchPass` (workflow
