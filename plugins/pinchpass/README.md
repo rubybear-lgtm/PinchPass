@@ -11,18 +11,24 @@ in the URL fragment.
 ## Install
 
 ```sh
-npm i -g @pinchpass/cli
+npm i -g @pinchpass/cli     # provides the `pinchpass` command
+```
+
+```sh
+npx @pinchpass/cli request API_KEY   # no install; fetches the binary on first run
 ```
 
 ```sh
 brew install --cask rubybear-lgtm/tap/pinchpass
 ```
 
-The npm postinstall downloads the prebuilt `pinchpass` binary to `~/.local/bin`.
-It is version-aware: when the binary it finds (on `PATH`, or in `~/.local/bin`,
+The npm package installs this package's `bin/pinchpass.js`, which resolves the
+platform binary and hands off to it. The postinstall downloads that binary to
+`~/.local/bin`, verifying it against the release's `checksums.txt`, and is
+version-aware: when the binary it finds (on `PATH`, or in `~/.local/bin`,
 `~/.openclaw/bin`, `~/.pi/bin`) does not report the package's version, it
-downloads the matching release asset and replaces it. Downloads are verified
-against the release's `checksums.txt`. Set `PINCHPASS_SKIP_DOWNLOAD=1` to skip.
+downloads the matching release asset and replaces it. Set
+`PINCHPASS_SKIP_DOWNLOAD=1` to skip the download.
 
 ## Updating
 

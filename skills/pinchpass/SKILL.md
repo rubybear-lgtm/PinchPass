@@ -37,8 +37,13 @@ pi install npm:@pinchpass/cli
 ```
 
 ```bash
-# Any agent (npm — downloads the prebuilt binary)
+# Any agent (npm — provides the `pinchpass` command)
 npm i -g @pinchpass/cli
+```
+
+```bash
+# No install needed (npx fetches package and binary on first use)
+npx @pinchpass/cli request API_KEY
 ```
 
 ```bash

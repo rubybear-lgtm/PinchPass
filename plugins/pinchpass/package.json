@@ -1,6 +1,6 @@
 {
   "name": "@pinchpass/cli",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "One-time E2E-encrypted secret request links — native for Pi and OpenClaw agents",
   "repository": {
     "type": "git",
@@ -16,8 +16,12 @@
   ],
   "type": "module",
   "main": "./dist/index.js",
+  "bin": {
+    "pinchpass": "./bin/pinchpass.js"
+  },
   "files": [
     "dist",
+    "bin",
     "skills",
     "openclaw.plugin.json",
     "scripts",

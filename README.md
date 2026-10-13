@@ -85,8 +85,13 @@ brew install --cask rubybear-lgtm/tap/pinchpass
 ```
 
 ```bash
-# Any agent (npm — downloads the prebuilt binary for your platform)
+# Any agent (npm — provides the `pinchpass` command)
 npm i -g @pinchpass/cli
+```
+
+```bash
+# No install needed (npx fetches the package and binary on first use)
+npx @pinchpass/cli request API_KEY
 ```
 
 ```bash
@@ -114,7 +119,7 @@ Update through whichever channel you installed with:
 | Installed with | Update with |
 |----------------|-------------|
 | Homebrew | `brew upgrade --cask pinchpass` |
-| npm | `npm update -g @pinchpass/cli` — the postinstall replaces the binary when the version differs |
+| npm | `npm update -g @pinchpass/cli` — updates the package; the postinstall replaces the binary when the version differs |
 | `go install` | `go install github.com/rubybear-lgtm/pinchpass@latest` |
 | curl | re-run the `curl` command above |
 

@@ -54,6 +54,11 @@ agents. No platform-specific plugins needed — the skill is the integration.
   (same tool name, `$.raw` backend).
 - `pi` manifest in `package.json`: `dist/index.js` (extension) + `skills/`
   (skill copied from `skills/pinchpass/SKILL.md` by `scripts/copy-skill.js` at build).
+- `bin/pinchpass.js` is the package's `bin`: npm's global shim and `npx
+  @pinchpass/cli` run it, it resolves the platform binary (installing it on
+  first use) and hands off, forwarding stdio, signals, and the exit code. It
+  does not version-check on every run — that stays in `npm update -g` /
+  `brew upgrade`.
 - Build/publish: `cd plugins/pinchpass && npm install && npm publish`.
   `postinstall` (`scripts/install-binary.js`) installs the release asset pinned
   to the package version into `~/.local/bin`, verifying it against the release's
