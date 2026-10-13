@@ -95,6 +95,11 @@ It has **no build step and no dependencies** — plain HTML plus one
   `TechArticle` elsewhere. Keep the FAQ's `mainEntity` questions in step with
   the visible `<details>` questions; the counts must match exactly.
 - Add new pages to `site/sitemap.xml`, and keep `robots.txt` pointing at it.
+- `404.html` is served by Pages for **every** missing path, so it carries
+  `<base href="/PinchPass/">` — without it, relative asset and page links on a
+  deep 404 path (for example `/PinchPass/a/b/missing`) resolve against the
+  requested directory and the page renders unstyled. Keep that base tag on
+  `404.html` only, and update it if the site ever moves to a custom domain.
 - The site documents the **current** behaviour of the code. Check claims against
   `server/`, `cmd/`, and `store/` before editing copy: an earlier revision of
   this file described the URL path as a random token, which it never was.
