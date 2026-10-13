@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://rubybear-lgtm.github.io/PinchPass/sitemap.xml

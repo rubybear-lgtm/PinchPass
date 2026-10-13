@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install PinchPass — Homebrew, npm, Go, or prebuilt binary</title>
+<meta name="description" content="Install the PinchPass CLI on macOS or Linux via Homebrew, npm, npx, go install, or a prebuilt binary, and add the request_secret tool to Pi and OpenClaw.">
+<link rel="canonical" href="https://rubybear-lgtm.github.io/PinchPass/install.html">
+<meta name="theme-color" content="#fdf6e3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#002b36" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="PinchPass">
+<meta property="og:title" content="Install PinchPass — Homebrew, npm, Go, or prebuilt binary">
+<meta property="og:description" content="Install the PinchPass CLI on macOS or Linux via Homebrew, npm, npx, go install, or a prebuilt binary, and add the request_secret tool to Pi and OpenClaw.">
+<meta property="og:url" content="https://rubybear-lgtm.github.io/PinchPass/install.html">
+<meta property="og:image" content="https://rubybear-lgtm.github.io/PinchPass/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="PinchPass — one-time, end-to-end encrypted secret request links">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Install PinchPass — Homebrew, npm, Go, or prebuilt binary">
+<meta name="twitter:description" content="Install the PinchPass CLI on macOS or Linux, and add the request_secret tool to Pi and OpenClaw.">
+<meta name="twitter:image" content="https://rubybear-lgtm.github.io/PinchPass/assets/og-image.png">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": "Install PinchPass",
+  "description": "Install the PinchPass CLI on macOS or Linux and collect a secret over a one-time end-to-end encrypted link.",
+  "url": "https://rubybear-lgtm.github.io/PinchPass/install.html",
+  "inLanguage": "en",
+  "tool": [
+    { "@type": "HowToTool", "name": "Homebrew, npm, Go 1.26+, or a prebuilt binary" }
+  ],
+  "step": [
+    {
+      "@type": "HowToStep",
+      "name": "Install the CLI",
+      "text": "Install through Homebrew with brew install --cask rubybear-lgtm/tap/pinchpass, through npm with npm i -g @pinchpass/cli, through go install, or by downloading a prebuilt binary from GitHub Releases.",
+      "url": "https://rubybear-lgtm.github.io/PinchPass/install.html#pick-a-channel"
+    },
+    {
+      "@type": "HowToStep",
+      "name": "Verify the install",
+      "text": "Run pinchpass --version and confirm it prints a version, then run a first local request to confirm the tool starts a server and prints a link.",
+      "url": "https://rubybear-lgtm.github.io/PinchPass/install.html#verify-the-install"
+    },
+    {
+      "@type": "HowToStep",
+      "name": "Add the agent tool",
+      "text": "Run pi install npm:@pinchpass/cli to register the request_secret tool on Pi, or npx skills add rubybear-lgtm/pinchpass to teach any other agent the skill.",
+      "url": "https://rubybear-lgtm.github.io/PinchPass/install.html#add-the-agent-tool"
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="inner">
+    <a class="brand" href="index.html">
+      <img src="assets/favicon-32.png" alt="" width="26" height="26">
+      pinchpass
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="install.html" aria-current="page">Install</a>
+      <a href="cli.html">CLI</a>
+      <a href="security.html">Security</a>
+      <a href="agents.html">Agents</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/rubybear-lgtm/PinchPass">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="index.html">PinchPass</a></li>
+      <li>Install</li>
+    </ol>
+  </nav>
+
+  <section class="page-head">
+    <h1>Install PinchPass</h1>
+    <p class="lede">
+      PinchPass is a single Go binary. It has no runtime dependencies, starts an HTTP
+      server on a random loopback port when you ask for a link, and exits when the
+      secret arrives or the link expires. Pick whichever channel you already use.
+    </p>
+    <p>
+      <span class="badge">MIT licensed</span>
+      <span class="badge accent">Go 1.26+</span>
+      <span class="badge accent">macOS + Linux</span>
+      <span class="badge violet">single dependency: golang.org/x/crypto</span>
+    </p>
+  </section>
+
+  <section>
+    <h2 id="pick-a-channel">Pick a channel</h2>
+    <div class="grid two">
+      <div class="card">
+        <h3>Homebrew</h3>
+        <p>The tap ships a cask for macOS and Linux.</p>
+        <div class="terminal">
+          <div class="terminal-title">shell</div>
+<pre><code>brew install --cask rubybear-lgtm/tap/pinchpass</code></pre>
+        </div>
+        <p>Provides the <code>pinchpass</code> command. Update with
+        <code>brew upgrade --cask pinchpass</code>.</p>
+      </div>
+
+      <div class="card">
+        <h3>npm, global</h3>
+        <p>Installs the package and downloads the matching binary in a postinstall step.</p>
+        <div class="terminal">
+          <div class="terminal-title">shell</div>
+<pre><code>npm i -g @pinchpass/cli</code></pre>
+        </div>
+        <p>Provides the <code>pinchpass</code> command and the Pi / OpenClaw
+        extension. Update with <code>npm update -g @pinchpass/cli</code>.</p>
+      </div>
+
+      <div class="card">
+        <h3>npx, no install</h3>
+        <p>Fetches the package and its binary on first use, then caches them.</p>
+        <div class="terminal">
+          <div class="terminal-title">shell</div>
+<pre><code>npx @pinchpass/cli request API_KEY</code></pre>
+        </div>
+        <p>Good for a one-off request on a machine you do not want to change.</p>
+      </div>
+
+      <div class="card">
+        <h3>Prebuilt binary</h3>
+        <p>Raw binaries from GitHub Releases, no package manager involved.</p>
+        <div class="terminal">
+          <div class="terminal-title">shell</div>
+<pre><code>curl -sL https://github.com/rubybear-lgtm/PinchPass/releases/latest/download/pinchpass-darwin-arm64 -o /usr/local/bin/pinchpass
+chmod +x /usr/local/bin/pinchpass</code></pre>
+        </div>
+        <p>See <a href="#prebuilt-binaries">the asset names</a> for the other
+        platforms.</p>
+      </div>
+
+      <div class="card">
+        <h3>From source</h3>
+        <p>Needs Go 1.26 or newer.</p>
+        <div class="terminal">
+          <div class="terminal-title">shell</div>
+<pre><code>go install github.com/rubybear-lgtm/pinchpass@latest</code></pre>
+        </div>
+        <p>The version comes from the module metadata, so
+        <code>pinchpass --version</code> still reports it.</p>
+      </div>
+
+      <div class="card">
+        <h3>Agent tool</h3>
+        <p>Registers <code>request_secret</code> rather than a shell command.</p>
+        <div class="terminal">
+          <div class="terminal-title">shell</div>
+<pre><code>pi install npm:@pinchpass/cli</code></pre>
+        </div>
+        <p>Also downloads the binary for link mode. Detail on
+        <a href="agents.html">agent integration</a>.</p>
+      </div>
+    </div>
+
+    <div class="callout warn">
+      <span class="callout-title">Platforms</span>
+      <p>Releases cover <strong>Linux</strong> and <strong>macOS</strong> on both
+      <code>amd64</code> and <code>arm64</code>. Windows is not a published target,
+      and there is no installer for it.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="prebuilt-binaries">Prebuilt binaries</h2>
+    <div class="prose">
+      <p>
+        Release assets are named <code>pinchpass-&lt;os&gt;-&lt;arch&gt;</code>:
+        <code>pinchpass-linux-amd64</code>, <code>pinchpass-linux-arm64</code>,
+        <code>pinchpass-darwin-amd64</code>, and
+        <code>pinchpass-darwin-arm64</code>. They are raw executables, not archives,
+        so there is nothing to unpack:
+      </p>
+    </div>
+    <div class="terminal">
+      <div class="terminal-title">shell</div>
+<pre><code><span class="c"># macOS on Apple silicon</span>
+curl -sL https://github.com/rubybear-lgtm/PinchPass/releases/latest/download/pinchpass-darwin-arm64 -o /usr/local/bin/pinchpass
+chmod +x /usr/local/bin/pinchpass
+
+<span class="c"># macOS on Intel — pinchpass-darwin-amd64</span>
+<span class="c"># Linux x86_64   — pinchpass-linux-amd64</span>
+<span class="c"># Linux arm64    — pinchpass-linux-arm64</span></code></pre>
+    </div>
+    <div class="prose">
+      <p>
+        Each release publishes a <code>checksums.txt</code> of SHA-256 hashes beside
+        the binaries. The npm postinstall verifies its own download against that file
+        before installing, so a corrupted or substituted asset fails loudly rather
+        than being installed. If you fetch a binary by hand, verify it yourself:
+      </p>
+    </div>
+    <div class="terminal">
+      <div class="terminal-title">shell</div>
+<pre><code>shasum -a 256 pinchpass-darwin-arm64</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="verify-the-install">Verify the install</h2>
+    <ol class="steps">
+      <li>
+        <p>Confirm the binary runs and reports a version:</p>
+        <div class="terminal">
+          <div class="terminal-title">shell</div>
+<pre><code>pinchpass --version
+<span class="c"># pinchpass v1.2.0 (abc1234)</span></code></pre>
+        </div>
+        <p><code>pinchpass version</code> and <code>pinchpass -version</code> print the
+        same thing. A build from source reports the module version rather than a
+        release tag.</p>
+      </li>
+      <li>
+        <p>Run a first request. This starts a server on
+        <code>127.0.0.1</code> on a random port and prints a one-time link:</p>
+        <div class="terminal">
+          <div class="terminal-title">shell</div>
+<pre><code>pinchpass request TEST_KEY</code></pre>
+        </div>
+      </li>
+      <li>
+        <p>Open the printed link, type any value, and submit. The command
+        <strong>blocks</strong> until the human submits or the TTL expires, then
+        writes <code>TEST_KEY="..."</code> into <code>.env</code> and exits. When the
+        request times out it exits non-zero and writes nothing.</p>
+      </li>
+      <li>
+        <p>Read <a href="cli.html">the CLI reference</a> for every flag, or
+        <a href="security.html">the security model</a> before you use this for
+        anything that matters.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2 id="add-the-agent-tool">Add the agent tool</h2>
+    <div class="prose">
+      <p>
+        If an agent is the thing that needs the secret, install the extension and let
+        it call <code>request_secret</code> instead of shelling out.
+      </p>
+    </div>
+    <div class="grid two">
+      <div class="card">
+        <h3>Pi</h3>
+        <div class="terminal">
+          <div class="terminal-title">shell</div>
+<pre><code>pi install npm:@pinchpass/cli</code></pre>
+        </div>
+        <p>Registers the tool and the bundled skill.</p>
+      </div>
+      <div class="card">
+        <h3>OpenClaw</h3>
+        <p>The same package ships an OpenClaw plugin manifest, exposing the same tool
+        name with a <code>$.raw</code> backend. Install
+        <code>@pinchpass/cli</code> and enable the plugin.</p>
+      </div>
+    </div>
+    <div class="prose">
+      <p>
+        For every other agent, install the universal skill — one command, no
+        per-platform plugin:
+      </p>
+    </div>
+    <div class="terminal">
+      <div class="terminal-title">shell</div>
+<pre><code><span class="c"># teach every detected agent</span>
+npx skills add rubybear-lgtm/pinchpass
+
+<span class="c"># target specific agents</span>
+npx skills add rubybear-lgtm/pinchpass -a opencode -a claude-code -a openclaw
+
+<span class="c"># install globally, available in every project</span>
+npx skills add rubybear-lgtm/pinchpass -g</code></pre>
+    </div>
+    <div class="callout info">
+      <span class="callout-title">Modal mode needs no binary</span>
+      <p>On Pi, the dialog collection mode reads the value straight into
+      <code>.env</code> without starting a server or touching the network, so it works
+      even when the <code>pinchpass</code> binary is not installed at all.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="updating">Updating</h2>
+    <div class="table-wrap">
+      <table>
+        <caption>Update through the channel you installed with.</caption>
+        <thead>
+          <tr><th scope="col">Installed with</th><th scope="col">Update with</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Homebrew</td>
+            <td><code>brew upgrade --cask pinchpass</code></td>
+          </tr>
+          <tr>
+            <td>npm</td>
+            <td><code>npm update -g @pinchpass/cli</code></td>
+          </tr>
+          <tr>
+            <td><code>go install</code></td>
+            <td><code>go install github.com/rubybear-lgtm/pinchpass@latest</code></td>
+          </tr>
+          <tr>
+            <td>curl</td>
+            <td>Re-run the <code>curl</code> command and <code>chmod +x</code> again.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prose">
+      <p>
+        Updating the npm package also replaces the downloaded binary: the postinstall
+        compares the installed version against the package version and reinstalls when
+        they differ, verifying the new asset against the release checksums. You do not
+        need to remove the old binary first.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="troubleshooting">Troubleshooting</h2>
+
+    <details>
+      <summary>A rebuilt plugin still runs the old code in Pi</summary>
+      <p>
+        <code>/reload</code> does not pick up a rebuilt <code>dist/</code>, because
+        Node's ESM cache serves whatever module was already loaded for that path.
+        Restart Pi after a rebuild. <code>/reload</code> only helps the first time,
+        before anything is cached.
+      </p>
+    </details>
+
+    <details>
+      <summary><code>pinchpass: command not found</code> after installing the Pi tool</summary>
+      <p>
+        The Pi package downloads a binary, and link mode resolves it by searching
+        <code>PATH</code>, <code>~/.local/bin</code>, <code>~/.openclaw/bin</code>, and
+        <code>~/.pi/bin</code>. Check those locations before adding anything to
+        <code>PATH</code>. Modal mode does not need the binary at all.
+      </p>
+    </details>
+
+    <details>
+      <summary>The command just sits there</summary>
+      <p>
+        That is the design. <code>pinchpass request</code> blocks until the human
+        submits or the TTL expires, then exits. In a script or an agent loop, treat it
+        as a long-running call and give it a timeout larger than the
+        <code>-ttl</code> you asked for.
+      </p>
+    </details>
+
+    <details>
+      <summary>My request timed out</summary>
+      <p>
+        Nothing was written. The human mode prints
+        <code>❌ Request timed out. No secret was saved.</code> and exits non-zero; with
+        <code>-json</code> the final object is
+        <code>{"success": false, "message": "Request timed out or failed."}</code>. Ask
+        again — a link cannot be reused or revived.
+      </p>
+    </details>
+
+    <details>
+      <summary>The form says "Missing encryption key"</summary>
+      <p>
+        The <code>#k=</code> fragment was lost, usually because a chat client or a
+        redirect stripped everything after <code>#</code>. The page then disables the
+        submit button on purpose, since it has no key to encrypt with. Send the full
+        URL from the CLI output verbatim, or request a new link.
+      </p>
+    </details>
+  </section>
+
+  <section>
+    <h2>Next</h2>
+    <div class="prose">
+      <ul>
+        <li><a href="cli.html">CLI reference</a> — every flag, the JSON output, and
+        how <code>.env</code> is written.</li>
+        <li><a href="security.html">Security model</a> — what the relay sees, the
+        exact crypto, and what this does not protect against.</li>
+        <li><a href="agents.html">Agent integration</a> — the tool, the skill, and a
+        safe agent loop.</li>
+        <li><a href="faq.html">FAQ</a> — the questions that come up first.</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="inner">
+    <div>
+      <h2>PinchPass</h2>
+      <ul>
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="install.html">Install</a></li>
+        <li><a href="cli.html">CLI reference</a></li>
+      </ul>
+    </div>
+    <div>
+      <h2>Learn</h2>
+      <ul>
+        <li><a href="security.html">Security model</a></li>
+        <li><a href="agents.html">Agent integration</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+      </ul>
+    </div>
+    <div>
+      <h2>Source</h2>
+      <ul>
+        <li><a href="https://github.com/rubybear-lgtm/PinchPass">GitHub repository</a></li>
+        <li><a href="https://github.com/rubybear-lgtm/PinchPass/releases">Releases</a></li>
+        <li><a href="https://www.npmjs.com/package/@pinchpass/cli">npm package</a></li>
+        <li><a href="https://github.com/rubybear-lgtm/PinchPass/issues">Issues</a></li>
+      </ul>
+    </div>
+    <p class="colophon">
+      MIT licensed. The relay never sees your secrets — the encryption key is never
+      transmitted.
+    </p>
+  </div>
+</footer>
+</body>
+</html>

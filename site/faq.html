@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PinchPass FAQ — secret links, encryption, agents, and .env</title>
+<meta name="description" content="Answers about how PinchPass links work, whether they need HTTPS, what happens when a link expires, how the agent tool behaves, and how secrets reach your .env file.">
+<link rel="canonical" href="https://rubybear-lgtm.github.io/PinchPass/faq.html">
+<meta name="theme-color" content="#fdf6e3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#002b36" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="PinchPass">
+<meta property="og:title" content="PinchPass FAQ — secret links, encryption, agents, and .env">
+<meta property="og:description" content="How the links work, whether they need HTTPS, what an expired link does, and how secrets reach your .env file.">
+<meta property="og:url" content="https://rubybear-lgtm.github.io/PinchPass/faq.html">
+<meta property="og:image" content="https://rubybear-lgtm.github.io/PinchPass/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="PinchPass — one-time, end-to-end encrypted secret request links">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PinchPass FAQ">
+<meta name="twitter:description" content="How the links work, whether they need HTTPS, what an expired link does, and how secrets reach your .env file.">
+<meta name="twitter:image" content="https://rubybear-lgtm.github.io/PinchPass/assets/og-image.png">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "url": "https://rubybear-lgtm.github.io/PinchPass/faq.html",
+  "inLanguage": "en",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What exactly does PinchPass do?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "It collects one or more sensitive values from a human and writes them into a .env file. You run pinchpass request API_KEY, it starts a one-time HTTP server on a random loopback port and prints a link, the human opens the link and types the value, and the CLI writes it to disk and exits. The value is encrypted in the browser, so the server and any tunnel relay only ever handle ciphertext."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I need an account or a hosted service?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. PinchPass is a single Go binary that runs on your machine. There is no signup, no dashboard, no API key for the service itself, and no server to pay for. The optional public link uses the public bore.pub relay, which needs no account either."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What does the link look like?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A local request produces http://127.0.0.1:<port>/claim/<name>#k=<key>. With -tunnel it becomes http://bore.pub:<remote-port>/claim/<name>#k=<key>. The path segment is your secret name lowercased, and everything after the hash is the base64url encryption key."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I collect several secrets at once?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Pass more than one name: pinchpass request DB_HOST DB_PORT DB_NAME -out .env. The form asks for each value and the browser sends them as a single encrypted JSON object. The CLI rejects the payload if it contains any key you did not request."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I reach a human on another machine, and do I need to open a firewall port?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Use -tunnel. PinchPass dials bore.pub:7835 with a built-in standard-library client, gets a random public port, and prints a public URL, so you never open a port or configure NAT. Without -tunnel the server binds to 127.0.0.1 and is only reachable from the machine it runs on."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What happens if the human never submits?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The link expires after the TTL, which defaults to 30 minutes and is set with -ttl. The server shuts itself down, the CLI exits non-zero, and nothing is written to your .env file. With -json the final object reports success as false."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does the relay see my secret?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. The value is encrypted in the browser with XSalsa20-Poly1305 before it is sent, and the decryption key travels in the URL fragment, which browsers never transmit. The relay forwards ciphertext it cannot open. It can still observe metadata: that a request happened, its size, its timing, and the request path."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is the URL path a secret token?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. The path is derived from the secret name, so GEMINI_API_KEY becomes /claim/gemini_api_key, and anyone who knows the name can find the endpoint while the request is live. It does not need to be secret, because the path is not what protects the value: submitting requires producing ciphertext under the encryption key, which only the URL fragment carries. Treat the name as public and the value as protected."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is HTTPS required?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. The payload is encrypted before it leaves the browser, so there is nothing on the wire to intercept, and no WebCrypto or TLS support is needed. HTTPS would still hide surrounding metadata such as the fact, size, and timing of the request from a network observer."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I reuse a link?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. The first accepted submission claims the request, and every later request to that URL returns 404 with a link-expired page. If you need another value, run the command again to get a fresh link and a fresh key."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What if the link leaks?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A leaked link is a limited risk. Anyone holding the full URL including the fragment can submit a value, but they cannot read what was submitted, and the first submission claims the request. A leaked link is therefore a denial of service rather than a disclosure: someone could occupy the slot and force you to issue a new link."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I recover a secret if I lose the URL?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. The key exists only in the fragment of that URL and is held in memory by the running process, so there is no escrow and no recovery path. If the link is lost or the fragment is stripped by a chat client or shortener, ask the human to submit again on a new link."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does the Pi tool choose between the dialog and a link?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The request_secret tool takes a via parameter. modal opens a Pi dialog, link spawns the CLI and streams the one-time URL, and auto, the default, uses the dialog in the interactive TUI and a link everywhere else."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does the dialog mode need the binary or the network?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Modal mode collects the value straight from the keyboard into your .env file without starting a server or touching the network, so it works even when the pinchpass binary is not installed. In link mode the binary is resolved from PATH, ~/.local/bin, ~/.openclaw/bin, or ~/.pi/bin."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can an agent read the secret back out of the transcript?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Not in modal mode: the value goes from the keyboard to disk and never enters the model's context or the session transcript. In link mode the value arrives as ciphertext, is decrypted by the CLI process locally, and is written to the file, so the tool result reports the saved path and key names rather than the value itself."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What are the .env writing rules?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Each value is written as KEY=\"value\" with backslashes, double quotes, dollar signs, and backticks escaped, so the file survives being sourced. An existing key is replaced in place and other lines are preserved. The file is written with 0600 permissions and parent directories are created with 0700, and the result ends in a newline."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I change the output path, TTL, or port?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Use -out config/secrets.env to change where the value is written, -ttl 5 to set the expiry in minutes, and -port 9999 to pin the local port instead of picking a random one. Flags use single-dash style."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What are the platform requirements, and is Windows supported?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Releases cover Linux and macOS on amd64 and arm64, as raw binaries with no runtime dependencies. Building from source needs Go 1.26 or newer, and golang.org/x/crypto is the only dependency. Windows is not a published target."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I update PinchPass?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Use brew upgrade --cask pinchpass, npm update -g @pinchpass/cli, go install github.com/rubybear-lgtm/pinchpass@latest, or re-run the curl command for a prebuilt binary. Updating the npm package also replaces the downloaded binary, because the postinstall is version-aware."
+      }
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="inner">
+    <a class="brand" href="index.html">
+      <img src="assets/favicon-32.png" alt="" width="26" height="26">
+      pinchpass
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="install.html">Install</a>
+      <a href="cli.html">CLI</a>
+      <a href="security.html">Security</a>
+      <a href="agents.html">Agents</a>
+      <a href="faq.html" aria-current="page">FAQ</a>
+      <a href="https://github.com/rubybear-lgtm/PinchPass">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="index.html">PinchPass</a></li>
+      <li>FAQ</li>
+    </ol>
+  </nav>
+
+  <section class="page-head">
+    <h1>Frequently asked questions</h1>
+    <p class="lede">
+      The questions that come up first: what the tool actually does, what the relay can
+      see, what happens when a link dies, and how an agent is supposed to use it.
+    </p>
+    <p>
+      <span class="badge">19 answers</span>
+      <span class="badge accent">no accounts</span>
+      <span class="badge accent">no escrow</span>
+    </p>
+  </section>
+
+  <section>
+    <h2 id="how-it-works">How it works</h2>
+
+    <details>
+      <summary>What exactly does PinchPass do?</summary>
+      <p>
+        It collects one or more sensitive values from a human and writes them into a
+        <code>.env</code> file. You run <code>pinchpass request API_KEY</code>, it starts
+        a one-time HTTP server on a random loopback port and prints a link, the human
+        opens the link and types the value, and the CLI writes it to disk and exits. The
+        value is encrypted in the browser, so the server and any tunnel relay only ever
+        handle ciphertext.
+      </p>
+    </details>
+
+    <details>
+      <summary>Do I need an account or a hosted service?</summary>
+      <p>
+        No. PinchPass is a single Go binary that runs on your machine. There is no
+        signup, no dashboard, no API key for the service itself, and no server to pay
+        for. The optional public link uses the public <code>bore.pub</code> relay, which
+        needs no account either.
+      </p>
+    </details>
+
+    <details>
+      <summary>What does the link look like?</summary>
+      <p>
+        A local request produces
+        <code>http://127.0.0.1:&lt;port&gt;/claim/&lt;name&gt;#k=&lt;key&gt;</code>. With
+        <code>-tunnel</code> it becomes
+        <code>http://bore.pub:&lt;remote-port&gt;/claim/&lt;name&gt;#k=&lt;key&gt;</code>.
+        The path segment is your secret name lowercased, and everything after the hash is
+        the base64url encryption key.
+      </p>
+    </details>
+
+    <details>
+      <summary>Can I collect several secrets at once?</summary>
+      <p>
+        Yes. Pass more than one name:
+        <code>pinchpass request DB_HOST DB_PORT DB_NAME -out .env</code>. The form asks
+        for each value and the browser sends them as a single encrypted JSON object. The
+        CLI rejects the payload if it contains any key you did not request.
+      </p>
+    </details>
+  </section>
+
+  <section>
+    <h2 id="reaching-a-human">Getting the link to a human</h2>
+
+    <details>
+      <summary>How do I reach a human on another machine, and do I need to open a firewall port?</summary>
+      <p>
+        Use <code>-tunnel</code>. PinchPass dials <code>bore.pub:7835</code> with a
+        built-in standard-library client, gets a random public port, and prints a public
+        URL, so you never open a port or configure NAT. Without <code>-tunnel</code> the
+        server binds to <code>127.0.0.1</code> and is only reachable from the machine it
+        runs on.
+      </p>
+    </details>
+
+    <details>
+      <summary>What happens if the human never submits?</summary>
+      <p>
+        The link expires after the TTL, which defaults to 30 minutes and is set with
+        <code>-ttl</code>. The server shuts itself down, the CLI exits non-zero, and
+        nothing is written to your <code>.env</code> file. With <code>-json</code> the
+        final object reports <code>success</code> as <code>false</code>.
+      </p>
+    </details>
+  </section>
+
+  <section>
+    <h2 id="security">Security</h2>
+
+    <details>
+      <summary>Does the relay see my secret?</summary>
+      <p>
+        No. The value is encrypted in the browser with XSalsa20-Poly1305 before it is
+        sent, and the decryption key travels in the URL fragment, which browsers never
+        transmit. The relay forwards ciphertext it cannot open. It can still observe
+        metadata: that a request happened, its size, its timing, and the request path.
+      </p>
+    </details>
+
+    <details>
+      <summary>Is the URL path a secret token?</summary>
+      <p>
+        No. The path is derived from the secret name, so <code>GEMINI_API_KEY</code>
+        becomes <code>/claim/gemini_api_key</code>, and anyone who knows the name can
+        find the endpoint while the request is live. It does not need to be secret,
+        because the path is not what protects the value: submitting requires producing
+        ciphertext under the encryption key, which only the URL fragment carries. Treat
+        the name as public and the value as protected. The
+        <a href="security.html">security model</a> has the full reasoning.
+      </p>
+    </details>
+
+    <details>
+      <summary>Is HTTPS required?</summary>
+      <p>
+        No. The payload is encrypted before it leaves the browser, so there is nothing on
+        the wire to intercept, and no WebCrypto or TLS support is needed. HTTPS would
+        still hide surrounding metadata such as the fact, size, and timing of the request
+        from a network observer.
+      </p>
+    </details>
+
+    <details>
+      <summary>Can I reuse a link?</summary>
+      <p>
+        No. The first accepted submission claims the request, and every later request to
+        that URL returns <code>404</code> with a link-expired page. If you need another
+        value, run the command again to get a fresh link and a fresh key.
+      </p>
+    </details>
+
+    <details>
+      <summary>What if the link leaks?</summary>
+      <p>
+        A leaked link is a limited risk. Anyone holding the full URL including the
+        fragment can submit a value, but they cannot read what was submitted, and the
+        first submission claims the request. A leaked link is therefore a denial of
+        service rather than a disclosure: someone could occupy the slot and force you to
+        issue a new link.
+      </p>
+    </details>
+
+    <details>
+      <summary>Can I recover a secret if I lose the URL?</summary>
+      <p>
+        No. The key exists only in the fragment of that URL and is held in memory by the
+        running process, so there is no escrow and no recovery path. If the link is lost
+        or the fragment is stripped by a chat client or shortener, ask the human to
+        submit again on a new link.
+      </p>
+    </details>
+  </section>
+
+  <section>
+    <h2 id="agents">Agents and tooling</h2>
+
+    <details>
+      <summary>How does the Pi tool choose between the dialog and a link?</summary>
+      <p>
+        The <code>request_secret</code> tool takes a <code>via</code> parameter.
+        <code>modal</code> opens a Pi dialog, <code>link</code> spawns the CLI and streams
+        the one-time URL, and <code>auto</code>, the default, uses the dialog in the
+        interactive TUI and a link everywhere else.
+      </p>
+    </details>
+
+    <details>
+      <summary>Does the dialog mode need the binary or the network?</summary>
+      <p>
+        No. Modal mode collects the value straight from the keyboard into your
+        <code>.env</code> file without starting a server or touching the network, so it
+        works even when the <code>pinchpass</code> binary is not installed. In link mode
+        the binary is resolved from <code>PATH</code>, <code>~/.local/bin</code>,
+        <code>~/.openclaw/bin</code>, or <code>~/.pi/bin</code>.
+      </p>
+    </details>
+
+    <details>
+      <summary>Can an agent read the secret back out of the transcript?</summary>
+      <p>
+        Not in modal mode: the value goes from the keyboard to disk and never enters the
+        model's context or the session transcript. In link mode the value arrives as
+        ciphertext, is decrypted by the CLI process locally, and is written to the file,
+        so the tool result reports the saved path and key names rather than the value
+        itself. See <a href="agents.html">agent integration</a>.
+      </p>
+    </details>
+  </section>
+
+  <section>
+    <h2 id="practical">Practical use</h2>
+
+    <details>
+      <summary>What are the .env writing rules?</summary>
+      <p>
+        Each value is written as <code>KEY="value"</code> with backslashes, double quotes,
+        dollar signs, and backticks escaped, so the file survives being sourced. An
+        existing key is replaced in place and other lines are preserved. The file is
+        written with <code>0600</code> permissions and parent directories are created
+        with <code>0700</code>.
+      </p>
+    </details>
+
+    <details>
+      <summary>How do I change the output path, TTL, or port?</summary>
+      <p>
+        <code>-out config/secrets.env</code> changes where the value is written,
+        <code>-ttl 5</code> sets the expiry in minutes, and <code>-port 9999</code> pins
+        the local port instead of picking a random one. The
+        <a href="cli.html">CLI reference</a> lists every flag.
+      </p>
+    </details>
+
+    <details>
+      <summary>What are the platform requirements, and is Windows supported?</summary>
+      <p>
+        Releases cover Linux and macOS on <code>amd64</code> and <code>arm64</code>, as
+        raw binaries with no runtime dependencies. Building from source needs Go 1.26 or
+        newer, and <code>golang.org/x/crypto</code> is the only dependency. Windows is
+        not a published target. See <a href="install.html">install</a>.
+      </p>
+    </details>
+
+    <details>
+      <summary>How do I update PinchPass?</summary>
+      <p>
+        <code>brew upgrade --cask pinchpass</code>, <code>npm update -g @pinchpass/cli</code>,
+        <code>go install github.com/rubybear-lgtm/pinchpass@latest</code>, or re-run the
+        <code>curl</code> command for a prebuilt binary. Updating the npm package also
+        replaces the downloaded binary, because the postinstall is version-aware.
+      </p>
+    </details>
+  </section>
+
+  <section>
+    <h2 id="still-stuck">Still stuck?</h2>
+    <div class="prose">
+      <ul>
+        <li><a href="install.html">Install</a> covers channels, checksums, and
+        troubleshooting.</li>
+        <li><a href="cli.html">CLI reference</a> has every flag, both JSON objects, and
+        the exit behaviour.</li>
+        <li><a href="security.html">Security model</a> explains the crypto and lists what
+        PinchPass does not protect against.</li>
+        <li><a href="https://github.com/rubybear-lgtm/PinchPass/issues">Open an issue</a>
+        if the answer is not here.</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="inner">
+    <div>
+      <h2>PinchPass</h2>
+      <ul>
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="install.html">Install</a></li>
+        <li><a href="cli.html">CLI reference</a></li>
+      </ul>
+    </div>
+    <div>
+      <h2>Learn</h2>
+      <ul>
+        <li><a href="security.html">Security model</a></li>
+        <li><a href="agents.html">Agent integration</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+      </ul>
+    </div>
+    <div>
+      <h2>Source</h2>
+      <ul>
+        <li><a href="https://github.com/rubybear-lgtm/PinchPass">GitHub repository</a></li>
+        <li><a href="https://github.com/rubybear-lgtm/PinchPass/releases">Releases</a></li>
+        <li><a href="https://www.npmjs.com/package/@pinchpass/cli">npm package</a></li>
+        <li><a href="https://github.com/rubybear-lgtm/PinchPass/issues">Issues</a></li>
+      </ul>
+    </div>
+    <p class="colophon">
+      MIT licensed. The relay never sees your secrets — the encryption key is never
+      transmitted.
+    </p>
+  </div>
+</footer>
+</body>
+</html>

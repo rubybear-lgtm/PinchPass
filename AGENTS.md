@@ -21,7 +21,8 @@ go test -v -count=1 ./...    # run tests (count=1 disables cache)
 `--ignore-scripts` (no binary download), typechecks, then `npm test`. Other
 workflows: `codeql.yml` (Go + TS scanning), `dependency-review.yml` (PRs),
 `scorecard.yml` (OpenSSF), and `release.yml` (tag-triggered build + npm
-publish). `dependabot.yml` opens weekly bump PRs for Go, npm, and actions —
+publish). `pages.yml` deploys `site/` to GitHub Pages on pushes that touch
+`site/**`. `dependabot.yml` opens weekly bump PRs for Go, npm, and actions —
 keep the `go` directive in `go.mod` in step with the workflow's
 `go-version-file`, since `x/crypto` sets the floor.
 
@@ -70,6 +71,34 @@ agents. No platform-specific plugins needed — the skill is the integration.
   — Node's ESM cache serves the module already loaded for that path. Restart Pi
   after rebuilding. (`/reload` only helps the first time, before anything is
   cached.)
+
+## Documentation site
+
+`site/` is a static GitHub Pages site (`index`, `install`, `cli`, `security`,
+`agents`, `faq`, `404`) published at <https://rubybear-lgtm.github.io/PinchPass/>.
+It has **no build step and no dependencies** — plain HTML plus one
+`styles.css` — and `.github/workflows/pages.yml` deploys the directory verbatim
+(`upload-pages-artifact` with `path: site`). Pages is configured with
+`build_type: workflow`, so it is published only through that workflow; a push to
+`master` touching `site/**` triggers a deploy.
+
+- **Never add a CDN, web font, or external script.** The site must stay
+  self-contained. Everything it needs lives in `site/`.
+- The visual language mirrors the form the tool actually serves: Solarized
+  light/dark via `prefers-color-scheme`, the same monospace stack, the same
+  animated gradient wordmark (`server/handlers.go` `pageTemplate`). Reuse the
+  classes in `site/styles.css` instead of adding CSS, and keep the ASCII hero
+  byte-identical to the served art if you touch it.
+- Every page carries a unique `<title>`, meta description, canonical URL,
+  Open Graph + Twitter cards, and a JSON-LD block — `SoftwareApplication` +
+  `WebSite` on the index, `HowTo` on install, `FAQPage` on the FAQ,
+  `TechArticle` elsewhere. Keep the FAQ's `mainEntity` questions in step with
+  the visible `<details>` questions; the counts must match exactly.
+- Add new pages to `site/sitemap.xml`, and keep `robots.txt` pointing at it.
+- The site documents the **current** behaviour of the code. Check claims against
+  `server/`, `cmd/`, and `store/` before editing copy: an earlier revision of
+  this file described the URL path as a random token, which it never was.
+
 ## Releasing
 
 Pushing a `v*` tag runs `release.yml`, which does two things:
@@ -99,13 +128,23 @@ rubybear-lgtm/tap/pinchpass`.
 - `main.go` entrypoint → delegates to `cmd.RunRequest()`.
 - `version/` resolves the build version from `-ldflags` or Go build info;
   `pinchpass --version` and `pinchpass version` print it.
-- `server.Start()` creates HTTP server with one valid token. Serves HTML form with embedded TweetNaCl.js at `/claim/<token>`.
-- Encryption key is in URL fragment (`#k=<hex>`). **Never sent to server.**
+- `server.Start()` serves the HTML form with embedded TweetNaCl.js at
+  `/claim/<path>`; every other path 404s, and any method other than GET/POST on
+  the claim path returns 405.
+- **The URL path is not a token.** `makePath()` (`server/server.go:14`) derives
+  it from the secret names — lowercased, keeping only `[a-z0-9_]`, joined with
+  `_`, truncated to 80 characters — so `GEMINI_API_KEY` becomes
+  `/claim/gemini_api_key`. Treat the name as public.
+- Encryption key: 32 random bytes from `crypto/rand`, **base64url** encoded (43
+  characters), carried in the URL fragment (`#k=<key>`). **Never sent to the
+  server** — the browser refuses to submit unless the fragment matches
+  `^#k=([A-Za-z0-9_-]{43})$`, and disables the button when it does not.
 - POST body: `value=<base64(nonce[24] || nacl.secretbox(...))>` as `application/x-www-form-urlencoded`.
 - `server.Wait()` blocks until submit or TTL; then CLI decrypts blob and writes to `.env`.
 - bore.pub tunnel connects to `bore.pub:7835` (hardcoded in `tunnel/bore.go:13-14`).
-- Public URL format: `http://bore.pub:<remote-port>/claim/<token>#k=<hex>`.
-- One-time use: first POST claims the token; all subsequent requests return 404.
+- Public URL format: `http://bore.pub:<remote-port>/claim/<path>#k=<key>`.
+- One-time use: the first accepted POST claims the request; every later request
+  (GET or POST) returns 404 with the link-expired page.
 - TTL expiry shuts down the HTTP server.
 
 ## Test notes
@@ -121,6 +160,17 @@ rubybear-lgtm/tap/pinchpass`.
 
 ## Security
 
-- Both auth token (URL path) and encryption key (URL fragment) are 32 random bytes via `crypto/rand`.
-- Token comparison uses `subtle.ConstantTimeCompare`.
+- The URL path is **not** secret material — it is derived from the secret name
+  (see Architecture). The encryption key is the only secret in the flow.
+- The key is 32 random bytes from `crypto/rand`, base64url-encoded, delivered
+  only in the URL fragment.
+- Confidentiality comes from XSalsa20-Poly1305, not from the path. A stale or
+  hostile POST simply fails to decrypt; the CLI reports
+  `decryption failed (tampered payload?)`.
+- One-time use plus the TTL bound the exposure window, and the server binds
+  `127.0.0.1` unless `-listen-addr` says otherwise.
 - Minimum encrypted blob size check: 41 bytes (24 nonce + 16 mac + 1 ciphertext).
+- `token.Validate()` in `token/token.go` is **dead code** — nothing calls it, and
+  `handleClaim` compares the path with a plain `!=`. That is acceptable only
+  because the path is not a secret; do not describe it as a constant-time
+  compared token.

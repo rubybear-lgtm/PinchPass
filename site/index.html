@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PinchPass — one-time E2E-encrypted secret request links for AI agents</title>
+<meta name="description" content="PinchPass collects API keys, tokens, and passwords from a human without exposing them to the relay, the logs, or the agent's context window. One-time link, E2E encrypted in the browser, written straight into .env. Free, MIT, no account.">
+<link rel="canonical" href="https://rubybear-lgtm.github.io/PinchPass/">
+<meta name="theme-color" content="#fdf6e3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#002b36" media="(prefers-color-scheme: dark)">
+<meta name="keywords" content="secret request link, one-time secret sharing, e2e encrypted secret link, securely ask for api key, ai agent secrets, .env provisioning, cli secret collection, xsalsa20-poly1305, tweetnacl, self-hosted secret sharing">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="PinchPass">
+<meta property="og:title" content="PinchPass — one-time E2E-encrypted secret request links">
+<meta property="og:description" content="Ask a human for an API key without it touching the relay, the log, or the agent's context window. Encrypted in the browser, written straight to .env, dead after one submission.">
+<meta property="og:url" content="https://rubybear-lgtm.github.io/PinchPass/">
+<meta property="og:image" content="https://rubybear-lgtm.github.io/PinchPass/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="PinchPass — one-time, end-to-end encrypted secret request links">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PinchPass — one-time E2E-encrypted secret request links">
+<meta name="twitter:description" content="Ask a human for an API key without it touching the relay, the log, or the agent's context window.">
+<meta name="twitter:image" content="https://rubybear-lgtm.github.io/PinchPass/assets/og-image.png">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://rubybear-lgtm.github.io/PinchPass/#software",
+      "name": "PinchPass",
+      "alternateName": "pinchpass",
+      "description": "A command-line tool and agent tool that collects sensitive values — API keys, tokens, passwords — from a human over a one-time, end-to-end encrypted link or a native dialog, then writes them to a .env file.",
+      "applicationCategory": "DeveloperApplication",
+      "applicationSubCategory": "Security",
+      "operatingSystem": "macOS, Linux",
+      "softwareVersion": "1.2.1",
+      "programmingLanguage": "Go",
+      "license": "https://opensource.org/licenses/MIT",
+      "url": "https://rubybear-lgtm.github.io/PinchPass/",
+      "codeRepository": "https://github.com/rubybear-lgtm/PinchPass",
+      "downloadUrl": "https://github.com/rubybear-lgtm/PinchPass/releases/latest",
+      "installUrl": "https://rubybear-lgtm.github.io/PinchPass/install.html",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "One-time secret request links",
+        "End-to-end encryption with XSalsa20-Poly1305",
+        "Encryption key delivered in the URL fragment",
+        "Native dialog collection mode on Pi",
+        "Public links through a bore.pub tunnel",
+        "Shell-escaped writes to .env"
+      ],
+      "keywords": "secret request link, one-time secret sharing, end-to-end encrypted, API key collection, AI agent credentials"
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://rubybear-lgtm.github.io/PinchPass/#website",
+      "url": "https://rubybear-lgtm.github.io/PinchPass/",
+      "name": "PinchPass",
+      "inLanguage": "en",
+      "publisher": {
+        "@id": "https://rubybear-lgtm.github.io/PinchPass/#software"
+      }
+    },
+    {
+      "@type": "TechArticle",
+      "@id": "https://rubybear-lgtm.github.io/PinchPass/#how",
+      "headline": "How PinchPass collects a secret without the relay ever seeing it",
+      "about": {
+        "@id": "https://rubybear-lgtm.github.io/PinchPass/#software"
+      },
+      "url": "https://rubybear-lgtm.github.io/PinchPass/security.html",
+      "inLanguage": "en"
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="inner">
+    <a class="brand" href="index.html">
+      <img src="assets/favicon-32.png" alt="" width="26" height="26">
+      pinchpass
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="install.html">Install</a>
+      <a href="cli.html">CLI</a>
+      <a href="security.html">Security</a>
+      <a href="agents.html">Agents</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/rubybear-lgtm/PinchPass">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero">
+    <pre class="hero-ascii" aria-hidden="true">
+██████╗ ██╗███╗   ██╗ ██████╗██╗  ██╗██████╗  █████╗ ███████╗███████╗
+██╔══██╗██║████╗  ██║██╔════╝██║  ██║██╔══██╗██╔══██╗██╔════╝██╔════╝
+██████╔╝██║██╔██╗ ██║██║     ███████║██████╔╝███████║███████╗███████╗
+██╔═══╝ ██║██║╚██╗██║██║     ██╔══██║██╔═══╝ ██╔══██║╚════██║╚════██║
+██║     ██║██║ ╚████║╚██████╗██║  ██║██║     ██║  ██║███████║███████║
+╚═╝     ╚═╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝</pre>
+
+    <h1>Ask a human for an API key without ever holding it in the open</h1>
+    <p class="lede">
+      PinchPass generates a <strong>one-time, end-to-end encrypted secret request
+      link</strong>. The person on the other end opens it, types the value, and hits
+      submit. The value is encrypted in their browser, handed to your process, and
+      written into <code>.env</code> — it never appears in the relay's memory, your
+      shell history, the logs, or the agent's context window.
+    </p>
+
+    <p>
+      <span class="badge">MIT licensed</span>
+      <span class="badge accent">Go, single binary</span>
+      <span class="badge accent">no account, no server</span>
+      <span class="badge violet">Pi + OpenClaw native</span>
+      <span class="badge violet">70+ agents via skills.sh</span>
+    </p>
+
+    <div class="hero-actions">
+      <a class="btn primary" href="install.html">Install PinchPass</a>
+      <a class="btn" href="security.html">Read the security model</a>
+    </div>
+  </section>
+
+  <section>
+    <h2>Why this exists</h2>
+    <div class="prose">
+      <p>
+        An agent hits a step that needs a credential it does not have. The usual
+        answers all leak it somewhere:
+      </p>
+      <ul>
+        <li><strong>Paste it in chat</strong> — the plaintext lands in the session
+        transcript, which is stored, replayed as context, and often synced to a
+        provider.</li>
+        <li><strong>Read it from a file you hand over</strong> — now the agent has a
+        copy, and so does every log line that echoes it.</li>
+        <li><strong>Paste it into a third-party secret service</strong> — the vendor's
+        servers hold your plaintext, and you need an account to use it.</li>
+        <li><strong>Type it into a form on a relay</strong> — if the relay terminates
+        the crypto, the relay sees the secret.</li>
+      </ul>
+      <p>
+        PinchPass closes the loop: the human's keyboard is the only place the value
+        exists in plaintext outside your own machine, and the last hop is one-time,
+        expiring, and readable by exactly one process.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Two ways to collect a secret</h2>
+    <div class="grid two">
+      <div class="card">
+        <span class="icon" aria-hidden="true">🔐</span>
+        <h3>Native dialog (Pi)</h3>
+        <p>
+          Inside a Pi session, <code>request_secret</code> opens a masked overlay. The
+          value travels from the keyboard to disk — no server starts, no network is
+          touched, the model is never handed the value.
+        </p>
+        <p><span class="badge accent">zero network</span> <span class="badge accent">no binary needed</span></p>
+      </div>
+      <div class="card">
+        <span class="icon" aria-hidden="true">🔗</span>
+        <h3>One-time link</h3>
+        <p>
+          Anywhere else, PinchPass serves a single-use form on a random local port and
+          prints a URL. Add <code>-tunnel</code> and it publishes a public
+          <code>bore.pub</code> address so the human does not have to be on your
+          machine.
+        </p>
+        <p><span class="badge violet">works over plain HTTP</span> <span class="badge violet">no account</span></p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How the link flow works</h2>
+    <div class="flow" role="img" aria-label="Sequence: the agent generates a key and serves a form, the browser encrypts the value, the ciphertext crosses the relay, the agent decrypts locally and writes .env">
+Agent    pinchpass request GEMINI_API_KEY -tunnel
+         ├── key      = 32 random bytes from crypto/rand   → URL fragment  #k=…
+         ├── server   = 127.0.0.1:&lt;random port&gt;            → POST /claim/gemini_api_key
+         └── tunnel   = bore.pub:&lt;remote port&gt;             → public HTTPS-free URL
+
+Human    opens the URL
+         ├── browser reads the key from location.hash      (fragment, never sent)
+         ├── nacl.secretbox(value, nonce, key)             XSalsa20-Poly1305
+         └── POST base64( nonce ‖ ciphertext )             → only ciphertext leaves
+
+Relay    forwards an opaque blob. No key, no plaintext, no name→value mapping.
+
+Agent    secretbox.Open(...) with the key it kept in memory
+         └── writes shell-escaped KEY="value" into .env    mode 0600</div>
+    <div class="prose">
+      <p>Four properties make the link safe to hand over a public channel:</p>
+      <dl class="faq">
+        <dt>One-time</dt>
+        <dd>The first accepted submission claims the request. Every later request
+        against that URL gets a 404 — a leaked link is worthless after it is used
+        once.</dd>
+        <dt>Time-limited</dt>
+        <dd>The server shuts itself down and the link dies when the TTL lapses
+        (30 minutes by default, <code>-ttl</code> to change it).</dd>
+        <dt>End-to-end encrypted</dt>
+        <dd>The key is generated locally, lives only in the URL fragment, and is
+        never transmitted. Even the tunnel operator sees ciphertext.</dd>
+        <dt>No install for the sender</dt>
+        <dd>The form is a single self-contained page with TweetNaCl embedded — no
+        WebCrypto, no HTTPS, no app, no account.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section>
+    <h2>Quickstart</h2>
+    <div class="terminal">
+      <div class="terminal-title">shell</div>
+<pre><code><span class="c"># collect one secret over a public link, print JSON for the agent</span>
+npx @pinchpass/cli request GEMINI_API_KEY -tunnel -json
+
+<span class="c"># collect several at once into a project .env</span>
+pinchpass request DB_HOST DB_PORT DB_USER DB_PASSWORD -out config/secrets.env
+
+<span class="c"># dry run on localhost only, short-lived link</span>
+pinchpass request STRIPE_KEY -ttl 5 -note <span class="s">"Stripe restricted key, read-only"</span></code></pre>
+    </div>
+    <p class="prose">
+      The command blocks until the human submits or the TTL expires, then writes the
+      value and exits. Full list of channels on the <a href="install.html">install</a>
+      page and every flag in the <a href="cli.html">CLI reference</a>.
+    </p>
+  </section>
+
+  <section>
+    <h2>What the relay can and cannot see</h2>
+    <div class="prose">
+      <p>
+        The relay carries one base64 blob per request and nothing else. It cannot
+        decrypt it, and it never receives the key. What it can observe is metadata:
+        the fact that a request happened, its size, and its timing.
+      </p>
+    </div>
+    <div class="callout ok">
+      <span class="callout-title">Never leaves your machine in plaintext</span>
+      <p>The secret value, and the URL fragment containing the decryption key.</p>
+    </div>
+    <div class="callout warn">
+      <span class="callout-title">Visible to the tunnel relay</span>
+      <p>That a connection occurred, the byte size of the encrypted blob, and the
+      local port you exposed. The request path is derived from your secret's name
+      (<code>GEMINI_API_KEY</code> becomes <code>/claim/gemini_api_key</code>), so
+      treat the <em>name</em> as public and the <em>value</em> as protected.</p>
+    </div>
+    <p class="prose">
+      <a href="security.html">The full threat model, with the exact crypto and
+      protocol details →</a>
+    </p>
+  </section>
+
+  <section>
+    <h2>Built for agents, usable by humans</h2>
+    <div class="grid three">
+      <div class="card">
+        <h3>Agent tool</h3>
+        <p>
+          <code>pi install npm:@pinchpass/cli</code> registers a
+          <code>request_secret</code> tool that chooses a dialog or a link, and
+          returns the saved path and key names.
+        </p>
+      </div>
+      <div class="card">
+        <h3>Agent skill</h3>
+        <p>
+          <code>npx skills add rubybear-lgtm/pinchpass</code> teaches any of 70+
+          agents when and how to reach for the CLI.
+        </p>
+      </div>
+      <div class="card">
+        <h3>Plain CLI</h3>
+        <p>
+          Scriptable with <code>-json</code>, quiet by default, exits non-zero when
+          the request times out so a pipeline can react.
+        </p>
+      </div>
+    </div>
+    <p class="prose"><a href="agents.html">Agent integration guide →</a></p>
+  </section>
+
+  <section>
+    <h2>Common questions</h2>
+    <details>
+      <summary>Is the secret ever sent to a third-party server?</summary>
+      <p>
+        No. By default the form is served from <code>127.0.0.1</code> and never leaves
+        your machine. With <code>-tunnel</code>, the ciphertext passes through
+        <code>bore.pub</code>, which relays bytes without the key required to read
+        them.
+      </p>
+    </details>
+    <details>
+      <summary>What stops someone who guesses the URL from submitting junk?</summary>
+      <p>
+        Nothing, and it does not matter — a stale or hostile submission is unusable
+        without the key in the fragment, and a wrong value fails to decrypt. Encryption
+        is what protects the secret; one-time use and the TTL are what shrink the
+        window. <a href="security.html">Details in the threat model.</a>
+      </p>
+    </details>
+    <details>
+      <summary>Does it need HTTPS?</summary>
+      <p>
+        No. The payload is encrypted before it leaves the browser, so a plain
+        <code>http://</code> link is safe for the value itself. HTTPS would still
+        protect the surrounding metadata from a network observer.
+      </p>
+    </details>
+    <details>
+      <summary>What if the human never submits?</summary>
+      <p>
+        The process exits non-zero and nothing is written. In JSON mode you get
+        <code>{"success": false}</code>, so an agent can retry, switch channels, or
+        ask again.
+      </p>
+    </details>
+    <p class="prose"><a href="faq.html">More questions →</a></p>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="inner">
+    <div>
+      <h2>PinchPass</h2>
+      <ul>
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="install.html">Install</a></li>
+        <li><a href="cli.html">CLI reference</a></li>
+      </ul>
+    </div>
+    <div>
+      <h2>Learn</h2>
+      <ul>
+        <li><a href="security.html">Security model</a></li>
+        <li><a href="agents.html">Agent integration</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+      </ul>
+    </div>
+    <div>
+      <h2>Source</h2>
+      <ul>
+        <li><a href="https://github.com/rubybear-lgtm/PinchPass">GitHub repository</a></li>
+        <li><a href="https://github.com/rubybear-lgtm/PinchPass/releases">Releases</a></li>
+        <li><a href="https://www.npmjs.com/package/@pinchpass/cli">npm package</a></li>
+        <li><a href="https://github.com/rubybear-lgtm/PinchPass/issues">Issues</a></li>
+      </ul>
+    </div>
+    <p class="colophon">
+      MIT licensed. The relay never sees your secrets — the encryption key is never
+      transmitted.
+    </p>
+  </div>
+</footer>
+</body>
+</html>

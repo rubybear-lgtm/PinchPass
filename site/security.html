@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security model — PinchPass end-to-end encryption and threat model</title>
+<meta name="description" content="How PinchPass keeps secrets out of the relay: XSalsa20-Poly1305 in the browser, a key that never leaves the URL fragment, one-time use, and TTL expiry.">
+<link rel="canonical" href="https://rubybear-lgtm.github.io/PinchPass/security.html">
+<meta name="theme-color" content="#fdf6e3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#002b36" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="PinchPass">
+<meta property="og:title" content="Security model — PinchPass end-to-end encryption and threat model">
+<meta property="og:description" content="What the relay can see, the exact crypto, one-time use and TTL expiry, and an honest list of what PinchPass does not protect against.">
+<meta property="og:url" content="https://rubybear-lgtm.github.io/PinchPass/security.html">
+<meta property="og:image" content="https://rubybear-lgtm.github.io/PinchPass/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="PinchPass — one-time, end-to-end encrypted secret request links">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PinchPass security model">
+<meta name="twitter:description" content="What the relay can see, the exact crypto, and an honest list of what PinchPass does not protect against.">
+<meta name="twitter:image" content="https://rubybear-lgtm.github.io/PinchPass/assets/og-image.png">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "PinchPass security model",
+  "description": "The threat model behind PinchPass: XSalsa20-Poly1305 encryption in the browser, a decryption key carried only in the URL fragment, one-time requests, and TTL expiry.",
+  "url": "https://rubybear-lgtm.github.io/PinchPass/security.html",
+  "inLanguage": "en",
+  "about": {
+    "@type": "SoftwareApplication",
+    "name": "PinchPass",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "macOS, Linux"
+  },
+  "proficiencyLevel": "Expert"
+}
+</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="inner">
+    <a class="brand" href="index.html">
+      <img src="assets/favicon-32.png" alt="" width="26" height="26">
+      pinchpass
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="install.html">Install</a>
+      <a href="cli.html">CLI</a>
+      <a href="security.html" aria-current="page">Security</a>
+      <a href="agents.html">Agents</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/rubybear-lgtm/PinchPass">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="index.html">PinchPass</a></li>
+      <li>Security model</li>
+    </ol>
+  </nav>
+
+  <section class="page-head">
+    <h1>Security model</h1>
+    <p class="lede">
+      The relay handles one thing per request: a base64 blob it cannot read. The key
+      needed to read that blob is generated on your machine, delivered in a part of the
+      URL that browsers never transmit, and used once.
+    </p>
+    <p>
+      <span class="badge">XSalsa20-Poly1305</span>
+      <span class="badge accent">key in URL fragment only</span>
+      <span class="badge accent">one-time</span>
+      <span class="badge violet">no account, no escrow</span>
+    </p>
+  </section>
+
+  <section>
+    <h2 id="one-sentence">The one-sentence version</h2>
+    <div class="callout ok">
+      <span class="callout-title">What actually happens to your secret</span>
+      <p>
+        The value is encrypted in the browser with a key generated on your machine. The
+        key travels in the URL fragment, which browsers never send to a server. The
+        server holds ciphertext until the CLI decrypts it locally and writes it to
+        <code>.env</code>. The request is then dead.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="who-sees-what">What each party can see</h2>
+    <div class="table-wrap">
+      <table>
+        <caption>Who observes what during a tunnelled request.</caption>
+        <thead>
+          <tr>
+            <th scope="col">Party</th>
+            <th scope="col">Can see</th>
+            <th scope="col">Cannot see</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>The human's browser</td>
+            <td>The plaintext they typed, and the key from the fragment.</td>
+            <td>Nothing relevant — this is the trusted endpoint.</td>
+          </tr>
+          <tr>
+            <td>Your local CLI and server</td>
+            <td>The plaintext, after decrypting it locally, and the random port the
+            server bound to.</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>The <code>bore.pub</code> relay</td>
+            <td>The ciphertext blob and its size, the timing of the request, the
+            ephemeral remote port, and the request path.</td>
+            <td>The value, and the key. The relay never receives the fragment, so it has
+            nothing to decrypt with.</td>
+          </tr>
+          <tr>
+            <td>A network observer</td>
+            <td>That a plain HTTP request occurred, and its rough size.</td>
+            <td>The value or the key. The payload is already encrypted before it leaves
+            the browser.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>The path is not a secret</h3>
+    <div class="prose">
+      <p>
+        PinchPass derives the request path from the secret's name: it lowercases the
+        name, strips anything outside <code>a</code>–<code>z</code>,
+        <code>0</code>–<code>9</code> and <code>_</code>, and joins multiple names with
+        underscores. Asking for <code>GEMINI_API_KEY</code> produces
+        <code>/claim/gemini_api_key</code>.
+      </p>
+      <p>
+        That path is guessable, and it is not a bearer token. Anyone who knows the name
+        can find the endpoint while the request is live. This is a deliberate trade-off,
+        and it is safe <em>because</em> the path is not what protects the value:
+      </p>
+      <ul>
+        <li>Submitting something requires producing ciphertext under a key you do not
+        have.</li>
+        <li>A hostile or mistaken submission simply fails to decrypt, and the CLI
+        reports <code>decryption failed (tampered payload?)</code>.</li>
+        <li>The secret never travels in the path, the query string, or a header.</li>
+      </ul>
+      <p>
+        Treat the <strong>name</strong> as public — pick names that say what the
+        credential is, because the human sees them on the form — and rely on the
+        <strong>key</strong> to protect the value.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="crypto">The crypto</h2>
+    <div class="table-wrap">
+      <table>
+        <caption>Exact parameters, as implemented.</caption>
+        <thead>
+          <tr><th scope="col">Element</th><th scope="col">Value</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cipher</td>
+            <td><strong>XSalsa20-Poly1305</strong> (authenticated encryption)</td>
+          </tr>
+          <tr>
+            <td>Browser implementation</td>
+            <td>TweetNaCl.js, embedded inline in the served page. No CDN, no external
+            script, no WebCrypto requirement.</td>
+          </tr>
+          <tr>
+            <td>Go implementation</td>
+            <td><code>golang.org/x/crypto/nacl/secretbox</code> — the project's only
+            dependency.</td>
+          </tr>
+          <tr>
+            <td>Key</td>
+            <td>32 random bytes from <code>crypto/rand</code>, base64url-encoded (43
+            characters), delivered in the URL fragment and nowhere else.</td>
+          </tr>
+          <tr>
+            <td>Nonce</td>
+            <td>24 bytes, from <code>nacl.randomBytes(24)</code> in the browser, fresh
+            for every submission.</td>
+          </tr>
+          <tr>
+            <td>Payload</td>
+            <td>The nonce concatenated with the secretbox output, base64-encoded into the
+            POST body as <code>value=…</code>.</td>
+          </tr>
+          <tr>
+            <td>Minimum accepted blob</td>
+            <td>41 bytes — 24-byte nonce, 16-byte MAC, at least 1 byte of ciphertext.
+            Anything shorter is rejected with <code>400</code>.</td>
+          </tr>
+          <tr>
+            <td>Multiple secrets</td>
+            <td>One JSON object of name to value, encrypted as a single payload. The CLI
+            rejects any key that was not requested.</td>
+          </tr>
+          <tr>
+            <td>Fragment validation</td>
+            <td>The page refuses to submit unless the fragment matches
+            <code>^#k=([A-Za-z0-9_-]{43})$</code>, then disables the button and explains
+            that the key is missing.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="http">Why plain HTTP is acceptable</h2>
+    <div class="prose">
+      <p>
+        The payload is encrypted before it leaves the browser, so the wire carries
+        ciphertext that neither the relay nor a network observer can open. That is why a
+        plain <code>http://</code> link is safe for the value itself, and why PinchPass
+        does not require HTTPS, a certificate, or WebCrypto — it works on a LAN, on a
+        bare <code>bore.pub</code> URL, and on a machine with an outdated TLS stack.
+      </p>
+      <p>
+        Be precise about what that buys you. HTTPS would add nothing for
+        confidentiality of the value, but it would hide metadata from a network
+        observer: that a request happened at all, its size, and its timing. Those are
+        visible on plain HTTP. If that metadata matters to you, run the request over a
+        channel you already trust.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="lifetime">One-time and time-limited</h2>
+    <div class="prose">
+      <p>
+        Confidentiality comes from the cipher. What limits the damage of a link that
+        escapes is its lifetime:
+      </p>
+    </div>
+    <ul class="prose">
+      <li><strong>The first accepted submission claims the request.</strong> Every later
+      request to that URL — GET or POST — returns <code>404</code> with a link-expired
+      page.</li>
+      <li><strong>The TTL defaults to 30 minutes</strong> and is set with
+      <code>-ttl</code>. When it lapses, the server shuts itself down, the CLI exits
+      non-zero, and nothing is written.</li>
+      <li><strong>The server binds to <code>127.0.0.1</code> by default,</strong> so
+      without <code>-tunnel</code> the form is not reachable from the network at all.</li>
+      <li><strong>Only one route exists.</strong> <code>/claim/&lt;path&gt;</code> serves
+      the form, accepts a POST, or returns <code>405</code>. Everything else returns
+      <code>404</code>.</li>
+      <li><strong>The HTTP server is bounded:</strong> a 10-second read-header timeout,
+      30-second read and idle timeouts, and a 10-second write timeout.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2 id="limits">What this does not protect against</h2>
+    <div class="callout danger">
+      <span class="callout-title">Read this before trusting it with something irreplaceable</span>
+      <p>
+        PinchPass moves one value, once, from a browser to a file. It is not a secrets
+        manager, a KMS, or a vault, and it has no recovery story.
+      </p>
+    </div>
+    <ul class="prose">
+      <li><strong>A compromised machine.</strong> The key sits in the browser's memory
+      while the form is open, and the plaintext lands in <code>.env</code>. Malware or a
+      malicious extension on either end defeats the whole scheme.</li>
+      <li><strong>The plaintext on disk.</strong> The file is written <code>0600</code>,
+      but the secret is still sitting in your project directory, and so is any editor
+      buffer, backup, or sync client that touches it.</li>
+      <li><strong>Losing the URL.</strong> There is no escrow and no recovery. The key
+      exists only in the URL fragment, so if the link is lost before use, the human must
+      be asked again.</li>
+      <li><strong>A linker that strips fragments.</strong> Some chat clients,
+      shorteners, and link previewers drop everything after <code>#</code>. The value
+      then cannot be encrypted, the form disables submit, and a new link is needed.</li>
+      <li><strong>Anyone who holds the full URL can submit.</strong> They cannot read the
+      result, but they can occupy the one-time slot. That is a denial of service, not a
+      disclosure — the real user simply requests again.</li>
+      <li><strong>No audit trail.</strong> No account, no dashboard, no log of who
+      submitted what. If you need those, this is the wrong tool.</li>
+      <li><strong>Non-sensitive values.</strong> Routing a public string through
+      encryption adds ceremony for nothing. Ask for it directly.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2 id="verify">Verify it yourself</h2>
+    <div class="prose">
+      <p>
+        None of the above requires trusting this page. Every claim is checkable in a few
+        minutes, against the running tool and the source:
+      </p>
+    </div>
+    <ol class="steps">
+      <li>
+        <p>Run a request with <code>-json</code> and read the <code>url</code> field.
+        Confirm the key appears after a <code>#</code>, and that the path is just your
+        lowercased secret name:</p>
+        <div class="terminal">
+          <div class="terminal-title">shell</div>
+<pre><code>pinchpass request GEMINI_API_KEY -json | head -20</code></pre>
+        </div>
+      </li>
+      <li>
+        <p>While the request is live, fetch the form and read its source. Confirm
+        TweetNaCl is embedded inline — there is no external script tag — and that the
+        key is read from <code>location.hash</code>:</p>
+        <div class="terminal">
+          <div class="terminal-title">shell</div>
+<pre><code>curl -s http://127.0.0.1:&lt;port&gt;/claim/gemini_api_key | grep -c 'location.hash'</code></pre>
+        </div>
+      </li>
+      <li>
+        <p>Open the link, watch the network tab, and submit. The only request is a
+        <code>POST</code> whose body is <code>value=</code> followed by base64. There is
+        no header, query parameter, or field carrying your plaintext or the key.</p>
+      </li>
+      <li>
+        <p>Send the same request again with <code>curl</code>, or reload the page. Both
+        return <code>404</code> with the link-expired page, proving the request is
+        spent.</p>
+      </li>
+      <li>
+        <p>Start a request with <code>-ttl 1</code>, submit nothing, and wait. The
+        process exits non-zero and <code>.env</code> is untouched.</p>
+      </li>
+      <li>
+        <p>Read the code that does the work:
+        <code>server/handlers.go</code> for the form and the submit handler,
+        <code>server/server.go</code> for the path derivation and lifecycle,
+        <code>cmd/request.go</code> for the key generation and local decryption, and
+        <code>tunnel/bore.go</code> for the relay client. It is a small codebase, and
+        the crypto is all in the standard library and one <code>x/crypto</code>
+        package.</p>
+      </li>
+    </ol>
+    <div class="prose">
+      <p>
+        The full surface is listed in <a href="cli.html">the CLI reference</a>, and the
+        source is at
+        <a href="https://github.com/rubybear-lgtm/PinchPass">github.com/rubybear-lgtm/PinchPass</a>.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="inner">
+    <div>
+      <h2>PinchPass</h2>
+      <ul>
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="install.html">Install</a></li>
+        <li><a href="cli.html">CLI reference</a></li>
+      </ul>
+    </div>
+    <div>
+      <h2>Learn</h2>
+      <ul>
+        <li><a href="security.html">Security model</a></li>
+        <li><a href="agents.html">Agent integration</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+      </ul>
+    </div>
+    <div>
+      <h2>Source</h2>
+      <ul>
+        <li><a href="https://github.com/rubybear-lgtm/PinchPass">GitHub repository</a></li>
+        <li><a href="https://github.com/rubybear-lgtm/PinchPass/releases">Releases</a></li>
+        <li><a href="https://www.npmjs.com/package/@pinchpass/cli">npm package</a></li>
+        <li><a href="https://github.com/rubybear-lgtm/PinchPass/issues">Issues</a></li>
+      </ul>
+    </div>
+    <p class="colophon">
+      MIT licensed. The relay never sees your secrets — the encryption key is never
+      transmitted.
+    </p>
+  </div>
+</footer>
+</body>
+</html>
