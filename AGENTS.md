@@ -95,6 +95,11 @@ It has **no build step and no dependencies** — plain HTML plus one
   `TechArticle` elsewhere. Keep the FAQ's `mainEntity` questions in step with
   the visible `<details>` questions; the counts must match exactly.
 - Add new pages to `site/sitemap.xml`, and keep `robots.txt` pointing at it.
+- `site/google*.html` is a Google Search Console **verification file**, not a
+  page: a single plain-text `google-site-verification:` token with no markup. It
+  must stay at the site root so Search Console can fetch it, must not be added
+  to the sitemap, and must not be reformatted — verification fails unless the
+  bytes match what Google issued.
 - `404.html` is served by Pages for **every** missing path, so it carries
   `<base href="/PinchPass/">` — without it, relative asset and page links on a
   deep 404 path (for example `/PinchPass/a/b/missing`) resolve against the
