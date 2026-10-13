@@ -5,3 +5,6 @@ CLAUDE.local.md
 
 # npm package
 plugins/pinchpass/node_modules/
+
+# GoReleaser output
+/dist/

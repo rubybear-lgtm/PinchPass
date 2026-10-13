@@ -27,6 +27,11 @@ which pinchpass
 If missing, install it (pick one):
 
 ```bash
+# Homebrew (macOS and Linux, via the tap)
+brew install --cask rubybear-lgtm/tap/pinchpass
+```
+
+```bash
 # Pi (native package — registers the request_secret tool and this skill)
 pi install npm:@pinchpass/cli
 ```
@@ -37,7 +42,7 @@ npm i -g @pinchpass/cli
 ```
 
 ```bash
-# From source (requires Go 1.25+)
+# From source (requires Go 1.26+)
 go install github.com/rubybear-lgtm/pinchpass@latest
 ```
 
@@ -47,6 +52,10 @@ go install github.com/rubybear-lgtm/pinchpass@latest
 curl -sL https://github.com/rubybear-lgtm/PinchPass/releases/latest/download/pinchpass-darwin-arm64 -o /usr/local/bin/pinchpass
 chmod +x /usr/local/bin/pinchpass
 ```
+
+Check the build with `pinchpass --version`, and update through the channel you
+installed with — `brew upgrade --cask pinchpass`, `npm update -g @pinchpass/cli`,
+or `go install github.com/rubybear-lgtm/pinchpass@latest`.
 
 ## Usage
 

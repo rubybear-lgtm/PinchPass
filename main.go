@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/rubybear-lgtm/pinchpass/cmd"
+	"github.com/rubybear-lgtm/pinchpass/version"
 )
 
 const usage = `pinchpass — one-time secret request link
@@ -15,6 +16,7 @@ Usage:
 
 Commands:
   request   Generate a one-time link to collect one or more secrets from the user
+  version   Print the pinchpass version
 
 Global Flags:
   -out <path>        Output .env file path (default: .env)
@@ -24,6 +26,7 @@ Global Flags:
   -listen-addr <ip>  Address to listen on (default: 127.0.0.1)
   -json              Output as JSON for agent parsing
   -tunnel            Open a bore.pub tunnel for public URL access
+  -version           Print the pinchpass version and exit
 
 Examples:
   pinchpass request API_KEY -note "Production API key"
@@ -39,6 +42,9 @@ func main() {
 	}
 
 	switch os.Args[1] {
+	case "version", "-version", "--version":
+		fmt.Printf("pinchpass %s\n", version.String())
+		return
 	case "request":
 		if err := cmd.RunRequest(os.Args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)

@@ -1,0 +1,72 @@
+# GoReleaser config — https://goreleaser.com
+#
+# Assumes a tag of the form vX.Y.Z. `goreleaser check` validates this file in CI.
+version: 2
+
+project_name: pinchpass
+
+builds:
+  - id: pinchpass
+    main: .
+    binary: pinchpass
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/rubybear-lgtm/pinchpass/version.Number={{ .Version }}
+      - -X github.com/rubybear-lgtm/pinchpass/version.Revision={{ .ShortCommit }}
+
+archives:
+  # Raw binaries keep the historical asset names (pinchpass-<os>-<arch>) that
+  # the npm installer and the documented curl commands rely on.
+  - id: pinchpass
+    ids:
+      - pinchpass
+    formats: [binary]
+    name_template: "pinchpass-{{ .Os }}-{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore"
+
+release:
+  draft: false
+  prerelease: auto
+
+homebrew_casks:
+  - name: pinchpass
+    ids:
+      - pinchpass
+    binaries:
+      - pinchpass
+    repository:
+      owner: rubybear-lgtm
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Casks
+    homepage: "https://github.com/rubybear-lgtm/PinchPass"
+    description: "One-time E2E-encrypted secret request links"
+    license: "MIT"
+    hooks:
+      post:
+        install: |
+          if OS.mac? && File.exist?("#{staged_path}/pinchpass")
+            system_command "/usr/bin/xattr",
+                           args: ["-dr", "com.apple.quarantine", "#{staged_path}/pinchpass"]
+          end

@@ -5,7 +5,7 @@ import { CURSOR_MARKER, Key, Text, matchesKey, renderFakeCursor, truncateToWidth
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import { buildArgs, chooseVia } from "./args.js";
-import { BINARY_MISSING, findBinary } from "./binary.js";
+import { BINARY_MISSING, findBinary, updateNotice } from "./binary.js";
 import { writeEnvKey } from "./env.js";
 import { takeJsonBlobs } from "./json-stream.js";
 /** Small figlet "small" font rendering of PINCHPASS. */
@@ -315,6 +315,7 @@ function registerPiTool(pi) {
                 cwd: ctx.cwd,
                 stdio: ["ignore", "pipe", "pipe"],
             });
+            const notice = updateNotice(binary);
             let buffer = "";
             let stderr = "";
             const blobs = [];
@@ -349,10 +350,13 @@ function registerPiTool(pi) {
                                     details: { url: b.url, port: b.port, names: b.names ?? [], via: "link" },
                                 });
                                 if (ctx.mode === "tui") {
-                                    ctx.ui.setWidget("pinchpass-link", [
+                                    const widget = [
                                         `🔗 pinchpass — open this link to submit ${(b.names ?? []).join(", ") || "the secret"}:`,
                                         b.url,
-                                    ]);
+                                    ];
+                                    if (notice)
+                                        widget.push(`⚠ ${notice}`);
+                                    ctx.ui.setWidget("pinchpass-link", widget);
                                 }
                                 maybeOpenBrowser(b.url, ctx.mode);
                             }
@@ -419,6 +423,8 @@ function registerPiTool(pi) {
                     lines.push(`Saved to ${params.out ?? ".env"} in ${ctx.cwd}`);
                 if (downgradeNote)
                     lines.push(downgradeNote.trim());
+                if (notice)
+                    lines.push(`⚠ ${notice}`);
                 return makeResult({
                     success: completed,
                     aborted: false,

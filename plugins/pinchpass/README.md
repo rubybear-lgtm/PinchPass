@@ -14,8 +14,26 @@ in the URL fragment.
 npm i -g @pinchpass/cli
 ```
 
-The install downloads the prebuilt `pinchpass` binary for your platform to
-`~/.local/bin` (or finds an existing install).
+```sh
+brew install --cask rubybear-lgtm/tap/pinchpass
+```
+
+The npm postinstall downloads the prebuilt `pinchpass` binary to `~/.local/bin`.
+It is version-aware: when the binary it finds (on `PATH`, or in `~/.local/bin`,
+`~/.openclaw/bin`, `~/.pi/bin`) does not report the package's version, it
+downloads the matching release asset and replaces it. Downloads are verified
+against the release's `checksums.txt`. Set `PINCHPASS_SKIP_DOWNLOAD=1` to skip.
+
+## Updating
+
+```sh
+pinchpass --version                           # pinchpass v1.2.0 (abc1234)
+npm update -g @pinchpass/cli                  # re-runs the postinstall
+brew upgrade --cask pinchpass
+go install github.com/rubybear-lgtm/pinchpass@latest
+```
+
+The extension warns when the binary it resolves is older than the package.
 
 ## Pi (pi.dev)
 

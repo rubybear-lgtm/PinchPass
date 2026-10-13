@@ -4,7 +4,7 @@ import { chmodSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { MIN_VALID_BYTES, findBinaryIn } from "../dist/binary.js";
+import { MIN_VALID_BYTES, binaryVersion, compareVersions, findBinaryIn, packageVersion, parseVersion, updateNotice } from "../dist/binary.js";
 
 const posixOnly = process.platform === "win32" ? { skip: "POSIX executable bits" } : {};
 
@@ -63,6 +63,46 @@ test("deduplicates directories and honors the Windows binary name", posixOnly, (
     const file = makeExecutable(dir, "pinchpass.exe", MIN_VALID_BYTES);
     assert.equal(findBinaryIn([dir, dir, dir], "win32"), file);
     assert.equal(findBinaryIn([dir], "linux"), null);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+function fakeVersionBinary(dir, body) {
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, "pinchpass");
+  writeFileSync(file, `#!/bin/sh\n${body}\n`);
+  chmodSync(file, 0o755);
+  return file;
+}
+
+test("packageVersion reads this package's version", () => {
+  assert.match(packageVersion() ?? "", /^\d+\.\d+\.\d+$/);
+});
+
+test("parseVersion and compareVersions handle release vs dev output", () => {
+  assert.equal(parseVersion("pinchpass v1.2.0 (abc1234)"), "1.2.0");
+  assert.equal(parseVersion("pinchpass v1.1.2-0.20261013-89ce5d6+dirty (89ce5d6)"), null);
+  assert.equal(compareVersions("1.1.0", "1.2.0"), -1);
+  assert.equal(compareVersions("1.2.0", "1.2.0"), 0);
+  assert.equal(compareVersions("1.3.0", "1.2.0"), 1);
+});
+
+test("updateNotice flags an older binary and clears a current one", posixOnly, () => {
+  const root = mkdtempSync(join(tmpdir(), "pinchpass-notice-"));
+  try {
+    const pkg = packageVersion();
+    assert.ok(pkg, "package version must be readable");
+
+    const old = fakeVersionBinary(join(root, "old"), 'echo "pinchpass v0.0.1"');
+    assert.match(updateNotice(old) ?? "", /older than this package/);
+
+    const current = fakeVersionBinary(join(root, "current"), `echo "pinchpass v${pkg} (abc1234)"`);
+    assert.equal(updateNotice(current), null);
+
+    const silent = fakeVersionBinary(join(root, "silent"), "exit 1");
+    assert.match(updateNotice(silent) ?? "", /predates version reporting/);
+    assert.equal(binaryVersion(silent), null);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

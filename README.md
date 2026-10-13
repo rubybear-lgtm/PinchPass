@@ -80,6 +80,11 @@ The link is:
 ## Install the CLI
 
 ```bash
+# Homebrew (macOS and Linux, via the tap)
+brew install --cask rubybear-lgtm/tap/pinchpass
+```
+
+```bash
 # Any agent (npm — downloads the prebuilt binary for your platform)
 npm i -g @pinchpass/cli
 ```
@@ -94,9 +99,27 @@ chmod +x /usr/local/bin/pinchpass
 ```
 
 ```bash
-# From source (requires Go 1.25+)
+# From source (requires Go 1.26+)
 go install github.com/rubybear-lgtm/pinchpass@latest
 ```
+
+## Updating
+
+```bash
+pinchpass --version   # pinchpass v1.2.0 (abc1234)
+```
+
+Update through whichever channel you installed with:
+
+| Installed with | Update with |
+|----------------|-------------|
+| Homebrew | `brew upgrade --cask pinchpass` |
+| npm | `npm update -g @pinchpass/cli` — the postinstall replaces the binary when the version differs |
+| `go install` | `go install github.com/rubybear-lgtm/pinchpass@latest` |
+| curl | re-run the `curl` command above |
+
+Releases publish a `checksums.txt` (SHA-256) alongside the binaries, and the
+npm postinstall verifies its download against it before installing.
 
 ## Usage
 
@@ -175,7 +198,7 @@ Browser                        Server (local)        Bore relay
 go build -o pinchpass .
 ```
 
-Requires Go 1.25+. Module: `github.com/rubybear-lgtm/pinchpass`. Only
+Requires Go 1.26+. Module: `github.com/rubybear-lgtm/pinchpass`. Only
 dependency: `golang.org/x/crypto` (nacl/secretbox).
 
 ## Project structure
